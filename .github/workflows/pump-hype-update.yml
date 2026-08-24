@@ -1,0 +1,35 @@
+name: Update PUMP vs HYPE data
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+  push:
+    paths:
+      - 'pump-vs-hype/update_data.py'
+      - '.github/workflows/pump-hype-update.yml'
+permissions:
+  contents: write
+concurrency:
+  group: pump-hype-data
+  cancel-in-progress: true
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch and aggregate data
+        run: python pump-vs-hype/update_data.py
+      - name: Commit refreshed data
+        run: |
+          if git diff --quiet -- pump-vs-hype/data.json; then
+            echo 'No data changes'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pump-vs-hype/data.json
+          git commit -m 'chore: refresh PUMP vs HYPE data'
+          git push
