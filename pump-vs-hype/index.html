@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="PUMP vs HYPE relative-value dashboard: price ratio, market cap, revenue, buybacks, valuation, market share and catalysts.">
+<title>PUMP vs HYPE — Relative Value Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap" id="app">
+<header class="top">
+  <div>
+    <div class="eyebrow">Protocol fundamentals · relative value</div>
+    <h1><span class="pump">PUMP</span> <span style="color:#536b5f">vs</span> <span class="hype">HYPE</span></h1>
+    <div class="sub">同一页面跟踪价格比值、分别的历史市值、收入、季度回购/销毁、估值倍数、各自赛道市场份额与重大产品催化。页面打开时自动拉取公开 API；“刷新最新数据”会重新请求实时/最新可用数据。</div>
+  </div>
+  <div>
+    <div class="actions"><button class="btn" id="refreshBtn">刷新最新数据</button><a class="btn" href="#method">数据口径</a></div>
+    <div class="status" id="status"><span class="live snapshot"></span>正在加载公开数据…</div>
+  </div>
+</header>
+
+<div class="hero" id="hero"><strong>核心观察：</strong> 等待实时数据加载。相对估值应同时看收入、回购收益率与供给结构，不能只比较涨幅或绝对市值。</div>
+
+<div class="grid g4">
+  <div class="card"><div class="klabel">PUMP · 价格 / 市值</div><div class="metric pump" id="pPrice">$0.00502</div><div class="delta" id="pChg">—</div><div class="small">MC <b id="pMC">$1.96B</b> · FDV <b id="pFDV">$5.02B</b></div></div>
+  <div class="card"><div class="klabel">HYPE · 价格 / 市值</div><div class="metric hype" id="hPrice">$80.12</div><div class="delta" id="hChg">—</div><div class="small">MC <b id="hMC">$17.82B</b> · FDV <b id="hFDV">$76.52B</b></div></div>
+  <div class="card"><div class="klabel">PUMP / HYPE 价格比</div><div class="ratio-main" id="ratioNow">0.0000627</div><div class="delta" id="ratio30">30D 相对强度 —</div><div class="small">比值上升 = PUMP 相对 HYPE 走强</div></div>
+  <div class="card"><div class="klabel">30D Revenue</div><div class="metric"><span class="pump" id="pRev30">$35.67M</span> <span style="font-size:12px;color:#536b5f">vs</span> <span class="hype" id="hRev30">$30.29M</span></div><div class="delta" id="revLead">PUMP ≈ 1.18× HYPE</div><div class="small">DefiLlama · latest available rolling 30D</div></div>
+</div>
+
+<section class="section">
+  <div class="section-head"><h2>价格比值与历史相对强度</h2><div class="tabs" id="periodTabs"><button class="tab" data-days="30">30D</button><button class="tab active" data-days="90">90D</button><button class="tab" data-days="365">1Y</button></div></div>
+  <div class="card chart-card">
+    <div class="chart-title"><b>PUMP / HYPE</b><div class="legend"><span><i class="dot" style="background:var(--pump)"></i>价格比值</span><span id="ratioRange">90D</span></div></div>
+    <div class="chartbox" id="ratioChart"><div class="chart-empty">加载历史价格…</div></div>
+    <div class="grid g3" style="margin-top:10px">
+      <div><div class="klabel">窗口起点比值</div><b id="ratioStart">—</b></div>
+      <div><div class="klabel">当前比值</div><b id="ratioEnd">—</b></div>
+      <div><div class="klabel">相对变化</div><b id="ratioMove">—</b></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><h2>分别的历史市值</h2><span>双面板避免 HYPE 量级压扁 PUMP 曲线</span></div>
+  <div class="grid g2">
+    <div class="card chart-card"><div class="chart-title"><b class="pump">PUMP Market Cap</b><span class="small" id="pMCLatest">—</span></div><div class="chartbox" id="pMCChart"><div class="chart-empty">加载市值历史…</div></div></div>
+    <div class="card chart-card"><div class="chart-title"><b class="hype">HYPE Market Cap</b><span class="small" id="hMCLatest">—</span></div><div class="chartbox" id="hMCChart"><div class="chart-empty">加载市值历史…</div></div></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><h2>收入、回购与估值</h2><span>30D 运行率 + 实际 holders revenue / buyback</span></div>
+  <div class="grid g2">
+    <div class="card table-wrap">
+      <table class="table">
+        <thead><tr><th>指标</th><th class="pump">PUMP</th><th class="hype">HYPE</th></tr></thead>
+        <tbody>
+          <tr><td>24H Revenue</td><td id="pRev24">—</td><td id="hRev24">—</td></tr>
+          <tr><td>7D Revenue</td><td id="pRev7">—</td><td id="hRev7">—</td></tr>
+          <tr><td>30D Revenue</td><td class="strong" id="pRev30b">$35.67M</td><td class="strong" id="hRev30b">$30.29M</td></tr>
+          <tr><td>30D × 12 年化</td><td id="pAnnual">$428.0M</td><td id="hAnnual">$363.5M</td></tr>
+          <tr><td>MC / Revenue</td><td class="strong" id="pMCRev">4.6×</td><td class="strong" id="hMCRev">49.0×</td></tr>
+          <tr><td>FDV / Revenue</td><td id="pFDVRev">11.7×</td><td id="hFDVRev">210.5×</td></tr>
+          <tr><td>30D Buyback</td><td id="pBB30">—</td><td id="hBB30">—</td></tr>
+          <tr><td>Buyback yield / MC</td><td class="strong" id="pYield">—</td><td class="strong" id="hYield">—</td></tr>
+        </tbody>
+      </table>
+      <div class="note">Revenue Multiple = 市值 ÷（最近 30 天 Revenue × 12）。Buyback yield =（最近 30 天 Holders Revenue × 12）÷ 流通市值。它是价值捕获运行率，不是现金分红收益率。</div>
+    </div>
+    <div class="card">
+      <div class="split-kpi"><div><div class="klabel">PUMP 官方累计买回并永久销毁</div><div class="metric pump">$435.32M</div><div class="small">161.49B PUMP · 初始供应 16.149% · 数据截至 2026-08-22</div></div><span class="tag">official</span></div>
+      <div style="height:12px"></div>
+      <div class="split-kpi"><div><div class="klabel">HYPE 价值捕获</div><div style="font-size:17px;font-weight:750">Assistance Fund → open-market HYPE</div><div class="small">DefiLlama holders revenue / token buyback 口径动态汇总</div></div><span class="tag">on-chain</span></div>
+      <div class="callout"><b>机制差异</b><p>PUMP 官方现行页面写明目标为 50% 协议收入用于公开市场买入并永久销毁；HYPE 的 Assistance Fund 使用其收到的交易费持续买入 HYPE，Dashboard 不把未经官方固定承诺的百分比硬编码为 99%。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><h2>季度回购 / 价值捕获</h2><span>Q3 2026 为进行中；刷新后按 DefiLlama 日序列重新聚合</span></div>
+  <div class="grid g2">
+    <div class="card"><div class="legend"><span><i class="dot" style="background:var(--pump)"></i>PUMP</span><span><i class="dot" style="background:var(--hype)"></i>HYPE</span></div><div class="buyback-bars" id="buybackBars"></div><div class="note">柱高按同一美元尺度。鼠标悬停可看金额；移动端见右侧表格。</div></div>
+    <div class="card table-wrap"><table class="table" style="min-width:420px"><thead><tr><th>季度</th><th class="pump">PUMP</th><th class="hype">HYPE</th><th>HYPE / PUMP</th></tr></thead><tbody id="qRows"></tbody></table><div class="note">2025 Q3 前 PUMP holders-revenue 在 DefiLlama 口径中为 0 / 未归集，不代表平台此前没有收入。</div></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><h2>市场份额 / 护城河</h2><span>分母不同，仅判断各自在自身赛道的统治力</span></div>
+  <div class="card">
+    <div class="barrow"><span><b class="pump">PUMP</b><br><small class="small">Launchpad revenue share</small></span><div class="track"><div class="fill p" id="pShareBar" style="width:98%"></div></div><b id="pShare">98.0%</b></div>
+    <div class="barrow"><span><b class="hype">HYPE</b><br><small class="small">Perp DEX 30D peer share</small></span><div class="track"><div class="fill h" id="hShareBar" style="width:68.5%"></div></div><b id="hShare">68.5%</b></div>
+    <div class="note" id="shareNote">PUMP fallback：2026-08-09 tracked launchpad revenue share ≈98%；HYPE fallback：DefiLlama tracked peer set 30D derivatives volume share ≈68.5%。若公开 overview API 返回可比较 peer 数据，刷新会替换为最新值。</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><h2>重大产品催化</h2><span>产品扩张决定“收入倍数”能否维持或重估</span></div>
+  <div class="grid g2">
+    <div class="card"><div class="chart-title"><b class="pump">PUMP / pump.fun</b><span class="tag">consumer trading</span></div><div class="timeline">
+      <div class="event"><div class="date">2026-08</div><div><b>社交交易升级</b><p>Callout、关注网络与跨链交易把 pump.fun 从“发币工具”推向“交易互联网趋势”的社交交易产品；官方 App 已强调跨链趋势交易与社交信号。</p></div></div>
+      <div class="event"><div class="date">2026-05 →</div><div><b>多链扩张</b><p>交易入口从 Solana 延伸至 Ethereum、Base、BNB 等链，降低单链 meme 周期依赖。Terminal/专业交易入口扩大可变现交易流。</p></div></div>
+      <div class="event"><div class="date">NOW</div><div><b>50% revenue → buy & burn</b><p>关键验证不是单日涨幅，而是 30D Revenue 是否能维持高位、回购金额是否持续、市场份额是否在竞争后保持。</p></div></div>
+    </div><div class="callout"><b>核心风险</b><p>收入高度暴露于零售/meme 交易周期；代币解锁与流通增加会稀释“低 MC/Revenue”的表面便宜程度。</p></div></div>
+    <div class="card"><div class="chart-title"><b class="hype">HYPE / Hyperliquid</b><span class="tag">financial infrastructure</span></div><div class="timeline">
+      <div class="event"><div class="date">HIP-4</div><div><b>Outcome Markets 仍是下一大边界</b><p>截至 2026-08-10 仍在测试阶段；permissionless outcome markets 可把产品边界扩到预测市场、期权及其他结果型合约。</p></div></div>
+      <div class="event"><div class="date">HIP-3</div><div><b>RWA / equities / commodities perps</b><p>HIP-3 已把永续合约扩到股票、商品、指数等真实世界标的，并要求 deployer staking HYPE，形成额外 HYPE 需求面。</p></div></div>
+      <div class="event"><div class="date">ONGOING</div><div><b>HyperEVM + HyperCore</b><p>HYPE 同时是 HyperEVM gas token；生态从单一交易 venue 向可组合金融基础设施扩张。</p></div></div>
+    </div><div class="callout"><b>核心风险</b><p>估值已经显著反映平台期权；未来流通供应、竞争性 Perp DEX、以及 HIP-3/HIP-4 的费用分配都会影响 tokenholder capture。</p></div></div>
+  </div>
+</section>
+
+<section class="section" id="method">
+  <div class="section-head"><h2>数据源与口径</h2><span>事实、API 和 fallback 均明确标记</span></div>
+  <div class="card">
+    <div class="grid g3">
+      <div class="health"><i id="priceHealth" class="warn"></i><span id="priceHealthText">CoinGecko：等待请求</span></div>
+      <div class="health"><i id="revHealth" class="warn"></i><span id="revHealthText">DefiLlama：等待请求</span></div>
+      <div class="health"><i id="shareHealth" class="warn"></i><span id="shareHealthText">Market share：使用可验证 fallback</span></div>
+    </div>
+    <ul class="source-list">
+      <li><a href="https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=pump-fun%2Chyperliquid" target="_blank" rel="noreferrer">CoinGecko public API</a>：实时价格、Market Cap、FDV、24H/7D/30D 变化；market_chart 用于历史价格与市值。</li>
+      <li><a href="https://api.llama.fi/summary/fees/pump?dataType=dailyRevenue" target="_blank" rel="noreferrer">DefiLlama PUMP fees API</a> / <a href="https://api.llama.fi/summary/fees/hyperliquid?dataType=dailyRevenue" target="_blank" rel="noreferrer">Hyperliquid fees API</a>：Revenue 历史；dailyHoldersRevenue 用于 30D 与季度回购/价值捕获聚合。</li>
+      <li><a href="https://pump.fun/pump-token" target="_blank" rel="noreferrer">pump.fun 官方 PUMP Token 页面</a>：50% revenue target、累计买回/销毁与 supply offset。官方页面截至 Aug 22 显示累计买回销毁 $435.32M / 161.49B PUMP。</li>
+      <li><a href="https://hyperliquid.gitbook.io/hyperliquid-docs/trading/fees" target="_blank" rel="noreferrer">Hyperliquid 官方 Fees 文档</a>：Assistance Fund fee flow；<a href="https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/hyperevm" target="_blank" rel="noreferrer">HyperEVM 文档</a>：HYPE 为 gas token、base/priority fees burn。</li>
+      <li>市场份额不做错误横比：PUMP 的分母是 launchpad，HYPE 的分母是 perp DEX。fallback 分别来自 2026-08-09 的 98% tracked launchpad revenue share 与 DefiLlama 近期 30D perp peer-set 68.5%。</li>
+    </ul>
+    <div class="note">第三方公共 API 可能受 CORS/限流影响。失败时页面继续显示带日期的内置快照，并把状态灯改为黄色；不会把 fallback 伪装成实时数据。</div>
+  </div>
+</section>
+<div class="foot">Research dashboard · not investment advice. Last page build: 2026-08-24. Data timestamps are shown above and may differ across providers.</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
