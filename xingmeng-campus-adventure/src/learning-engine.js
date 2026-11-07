@@ -1,6 +1,6 @@
-/* 星梦校园学习引擎 v0.6 | MIT | 目前正式支持：小学二年级上学期 */
+/* 星梦校园学习引擎 v0.8 | MIT | 目前正式支持：小学二年级上学期 */
 (function(root){'use strict';
-const VERSION='0.6.0';
+const VERSION='0.8.0';
 const LIMIT=180;
 const SUBJECTS={cn:'语文',ma:'数学',sci:'科学兴趣'};
 const LEVEL_TEXT=['','巩固基础','标准练习','轻度拓展'];
@@ -19,7 +19,7 @@ const C=[
 ['“树叶像一只只小船。”把树叶比作什么？',['书本','小船','星星','雨滴'],1,'“像”前面是树叶，后面是小船。','阅读',1],
 ['“春天来了，桃花开了。”这句话主要写什么季节？',['春季','夏季','秋季','冬季'],0,'桃花开放常让人想到春天。','阅读',1],
 ['下面哪个词语能形容秋天？',['冰天雪地','秋高气爽','骄阳似火','春暖花开'],1,'秋高气爽常用来描述秋天天气。','词语',1],
-['“好（　）！”填哪个标点？',['？','。','！','，'],2,'感叹时常用感叹号。','标点',1],
+['“太好啦（　）”填哪个标点？',['？','。','！','，'],2,'感叹时常用感叹号。','标点',1],
 ['“太阳从东方升起。”这句话说的是？',['谁在唱歌','太阳升起的方向','什么时候睡觉','学校有几班'],1,'句中说明太阳从东方升起。','阅读',1],
 ['“一（　）汽车”应该填什么？',['只','片','辆','支'],2,'汽车常用量词“辆”。','量词',1],
 ['下面哪个词最适合填“（　）的天空”？',['湛蓝','奔跑','计算','阅读'],0,'天空可以用“湛蓝”形容。','搭配',1],
@@ -89,7 +89,7 @@ const S=[
 ['飞机的机翼是用来帮助飞机？',['飞起来','变成船','钻进地里','变成火车'],0,'机翼能产生使飞机升空的作用力。','航空',1],
 ['小船能够浮在水上，与什么有关？',['浮力','音乐','颜色','声音'],0,'水会对船产生向上的浮力。','航海',1],
 ['观察植物生长，可以记录什么？',['叶片数量','自己想象的结果','同学的名字就够了','随便编日期'],0,'叶片数量、长度和日期都是有用的真实观察记录。','观察',1],
-['夜空里发光发热的太阳是？',['一颗恒星','一艘飞船','一块塑料','一辆车'],0,'太阳是一颗恒星。','天文',1],
+['能自己发光发热的太阳属于哪一类？',['一颗恒星','一艘飞船','一块塑料','一辆车'],0,'太阳是一颗恒星。','天文',1],
 ['地球上我们每天看见的昼夜交替主要和什么有关？',['地球自转','树叶颜色','火车速度','海水味道'],0,'地球自转造成我们看到昼夜变化。','天文',2],
 ['元素符号 H 表示什么元素？',['氢','氧','氮','铁'],0,'H是氢元素的符号，属于科学兴趣拓展。','元素',2],
 ['元素符号 O 表示什么元素？',['金','氧','碳','铜'],1,'O表示氧元素。','元素',2],
@@ -115,7 +115,7 @@ else{a=2+Math.floor(r()*7);b=3+Math.floor(r()*7);answer=a*b;text=`轻轨有 ${a}
 const opts=numericOptions(answer,seed^0xabc);return {id:'ma-gen-'+seed,type:'ma',diff:level,topic,q:[text,opts.choices,opts.answer,explain]}}
 function emptyProfile(){return {grade:'g2a',mode:'standard',calm:true,subjects:{cn:{level:1,solved:0,firstTry:0,last:[]},ma:{level:1,solved:0,firstTry:0,last:[]},sci:{level:1,solved:0,firstTry:0,last:[]}},records:[],mistakes:[],total:0,minutes:0,created:Date.now(),historyVersion:1}}
 function ensureProfile(p){if(!p||typeof p!=='object')p=emptyProfile();if(p.grade!=='g2a')p.grade='g2a';if(!['relaxed','standard','challenge'].includes(p.mode))p.mode='standard';if(typeof p.calm!=='boolean')p.calm=true;if(!p.subjects||typeof p.subjects!=='object')p.subjects={};for(const t of Object.keys(SUBJECTS)){let v=p.subjects[t];if(!v||typeof v!=='object')v={};v.level=clamp(Number(v.level)||1,1,3);v.solved=Number(v.solved)||0;v.firstTry=Number(v.firstTry)||0;v.last=Array.isArray(v.last)?v.last.filter(x=>x===0||x===1).slice(-20):[];p.subjects[t]=v}p.records=Array.isArray(p.records)?p.records.slice(-LIMIT):[];p.mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-100):[];p.total=Number(p.total)||0;return p}
-function difficulty(p,type){p=ensureProfile(p);let n=p.subjects[type].level;return p.mode==='relaxed'?Math.min(n,2):n}
+function difficulty(p,type){p=ensureProfile(p);let n=p.subjects[type].level;return p.mode==='relaxed'?Math.min(n,2):p.mode==='challenge'?Math.min(n+1,3):n}
 function recentIds(p){return new Set(p.records.slice(-55).map(x=>x.id))}
 function makeQuiz(kind,idx,profile,nonce=0){let p=ensureProfile(profile);let pattern=kind==='hourly'?['cn','ma','cn','ma','cn','ma','cn','ma','cn','ma','cn','ma']:['cn','ma','sci','cn','ma','sci','cn','ma'];let picked=new Set(),avoid=recentIds(p);return pattern.map((type,i)=>{let level=difficulty(p,type),seed=hash(kind+'|'+idx+'|'+nonce+'|'+i+'|'+p.total+'|'+level),r=rng(seed);let candidates=bank.filter(x=>x.type===type&&x.diff<=level&&!picked.has(x.id));let newOnes=candidates.filter(x=>!avoid.has(x.id));if(newOnes.length)candidates=newOnes;let q;
 // 循环进行计算题变式；不突然插入高年级内容
