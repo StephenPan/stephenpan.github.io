@@ -10,7 +10,7 @@ const secretParents = {
 };
 function isScene(id) {
   return typeof id === 'string' && (
-    ['campus', 'street', 'hall', 'floor-1', 'floor-2'].includes(id) ||
+    ['campus', 'street', 'hall', 'floor-1', 'floor-2'].includes(id) || CampusDistricts.isScene(id) ||
     /^class-([1-9]|1[0-9]|2[0-2])$/.test(id) || Object.hasOwn(secretParents, id) ||
     Object.hasOwn(zones, id) || Object.values(zones).some(z => z.children.some(([child]) => child === id))
   );
@@ -27,7 +27,7 @@ function sound(freq=650,duration=.12,type='sine',volume=.065,delay=0){if(!s.audi
 const fx={click:()=>sound(430,.08,'sine',.035),success:()=>{sound(523,.13);sound(659,.12,'sine',.06,.12);sound(784,.22,'sine',.05,.26)},wrong:()=>{sound(215,.17,'triangle',.06);sound(176,.23,'triangle',.04,.13)},coin:()=>{sound(790,.09,'sine',.06);sound(1046,.18,'sine',.06,.09)},unlock:()=>{[392,523,659,784].forEach((x,i)=>sound(x,.25,'sine',.055,i*.12))}};
 function music(){clearInterval(musicTimer);if(!s.audio)return;let ix=0,mel=[262,330,392,330,294,349,440,392,330,294,262,392,349,330,294,262];musicTimer=setInterval(()=>{if(!s.audio)return; sound(mel[ix%mel.length],.24,'sine',.014);ix++;},780)}
 function toast(msg){const b=$('toast');b.textContent=msg;b.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>b.classList.add('hidden'),3200)}
-function hud(){ if($('goSecret'))$('goSecret').classList.toggle('hidden',!s.flags.includes('secret-seen')); $('hStar').textContent='⭐ '+s.star; $('hCoin').textContent='🪙 '+s.coin; $('hStamp').textContent='🏅 '+s.stamps.length+'/22';$('hLevel').textContent='📚 二上 · 语'+s.learning.subjects.cn.level+' 数'+s.learning.subjects.ma.level;let q=[['完成12道每小时题',!s.locked],['认识20位同学',s.talk.length>=20],['集齐22枚班级印章',s.stamps.length>=22],['探索12处隐藏彩蛋',s.eggs.length>=12],['走出校门看看放学街区',s.visits.includes('street')],['破解22班禁区四重谜题',s.flags.includes('secret-clear')],['救出四间教室的同学',[4,9,15,22].every(c=>s.flags.includes('stone-cleared-'+c))]];$('taskList').innerHTML=q.map(([t,on])=>'<div class="quest">'+(on?'✅':'⬜')+' '+t+'</div>').join('');$('taskProg').style.width=(100*q.filter(x=>x[1]).length/q.length)+'%';}
+function hud(){ if($('goSecret'))$('goSecret').classList.toggle('hidden',!s.flags.includes('secret-seen')); $('hStar').textContent='⭐ '+s.star; $('hCoin').textContent='🪙 '+s.coin; $('hStamp').textContent='🏅 '+s.stamps.length+'/22';$('hLevel').textContent='📚 二上 · 语'+s.learning.subjects.cn.level+' 数'+s.learning.subjects.ma.level;let q=[['完成12道每小时题',!s.locked],['认识20位同学',s.talk.length>=20],['集齐22枚班级印章',s.stamps.length>=22],['探索12处隐藏彩蛋',s.eggs.length>=12],['走过三条街',CampusDistricts.streets.every(area=>s.visits.includes(area.id))],['破解22班禁区四重谜题',s.flags.includes('secret-clear')],['救出四间教室的同学',[4,9,15,22].every(c=>s.flags.includes('stone-cleared-'+c))]];$('taskList').innerHTML=q.map(([t,on])=>'<div class="quest">'+(on?'✅':'⬜')+' '+t+'</div>').join('');$('taskProg').style.width=(100*q.filter(x=>x[1]).length/q.length)+'%';}
 function reward(star=1,coin=5){s.star+=star;s.coin+=coin;hud();save();fx.coin()}
 function action(kind,title,id,x,y,z,fn){sceneMarkers.push({kind,title,id,x,y,z,fn});return [kind,title,id,x,y,z,fn]}
 function guard(fn){if(modalOpen())return;if(s.locked){openQuiz();return}fx.click();fn()}
@@ -41,10 +41,10 @@ function go(id) {
   if (id.startsWith('class-')) s.floor = Number(id.slice(6)) <= 11 ? 1 : 2;
   if (id.startsWith('floor-')) s.floor = Number(id.slice(6));
   if (!s.visits.includes(id)) { s.visits.push(id); s.coin += 2; toast('发现新地点：+2金币！'); }
-  const spawn = id === 'street' ? CampusWorld.STREET_SPAWN : {x:0, z:previous === 'street' && id === 'campus' ? 27 : 6};
+  const spawn = CampusDistricts.spawn(id,previous) || (id === 'street' ? CampusWorld.STREET_SPAWN : {x:0,z:6});
   s.px = spawn.x;
   s.pz = spawn.z;
-  playerHeading = id === 'street' ? 0 : Math.PI;
+  playerHeading = CampusDistricts.isOutdoor(id) ? 0 : Math.PI;
   clearInput();
   neighborhood.reset();
   fx.click();
@@ -54,7 +54,9 @@ function go(id) {
 function back() {
   const id = s.scene;
   if (id === 'campus') return;
-  if (Object.hasOwn(secretParents, id)) go(secretParents[id]);
+  const districtParent = CampusDistricts.parent(id);
+  if (districtParent) go(districtParent);
+  else if (Object.hasOwn(secretParents, id)) go(secretParents[id]);
   else if (id.startsWith('class-')) go('floor-' + s.floor);
   else if (id.startsWith('floor-')) go('hall');
   else if (id.includes('-')) go(id.split('-')[0]);
@@ -427,7 +429,7 @@ for(let k=0;k<5;k++){m.box(-2.5+k*.35,3.8+(k%2)*.3,-8.35,.19,.11,.08,'#f6efdf')}
 for(let k=0;k<5;k++){m.box(-2.6+k*.35,3.1,-8.35,.12,.12,.08,'#f6efdf')}
 m.cylinder(6.5,.9,-4.0,.36,.45,'#c9b6a2');m.sphere(6.5,1.45,-4,.45,'#5aab76',9,6);
 if(c===22){for(let k=0;k<4;k++){m.box(3.3+k*.55,1.5,-4.1,.46,.53,.46,['#a3b9ed','#e4adbe','#b7ddb1','#f5d794'][k]);m.box(3.3+k*.55,1.8,-3.86,.25,.08,.08,'#fbfbf6')}}
-for(let i=0;i<3;i++)for(let j=0;j<2;j++){let x=-5+i*5,z=-.5+j*3.4;m.box(x,.95,z,2.6,.16,1.25,'#bd936c');m.box(x,.45,z-.35,.16,.85,.18,'#96765d');m.box(x,.45,z+.4,.16,.85,.18,'#96765d');m.box(x,1.03,z-.2,.9,.05,.4,'#f5e0a7')}m.box(8,2,-6,3.0,3.6,1.2,'#a87861');for(let j=0;j<4;j++)m.box(8,.7+j*.78,-5.3,2.6,.09,.65,'#f2cda1');for(let j=0;j<15;j++)m.box(6.8+j%5*.58,1.3+Math.floor(j/5)*.73,-4.8,.11,.55,.26,['#639ab9','#d9b16d','#a97cba'][j%3]);character(m,-7,0,-4.2,500+c,true);let ps=studentsFor(c);character(m,-6,0,3.0,ps[0].seed);character(m,-2,0,3.0,ps[1].seed);character(m,2,0,3.0,ps[2].seed);if(!isStoneClass(c)||s.flags.includes('stone-cleared-'+c))character(m,6,0,3.0,ps[3].seed);m.sphere(8.2,3,-7.6,.53,'#f6c66c',8,6);if(isStoneClass(c)){m.roundBox(5.5,.26,-7.1,4.2,.40,2.1,.23,'#4c4e62',7);m.sphere(5.5,.52,-7.1,.65,'#8c7181',24,16,[1,.25,.75]);}}
+for(let i=0;i<3;i++)for(let j=0;j<2;j++){let x=-5+i*5,z=-.5+j*3.4;m.box(x,.95,z,2.6,.16,1.25,'#bd936c');m.box(x,.45,z-.35,.16,.85,.18,'#96765d');m.box(x,.45,z+.4,.16,.85,.18,'#96765d');m.box(x,1.03,z-.2,.9,.05,.4,'#f5e0a7')}m.box(8,2,-6,3.0,3.6,1.2,'#a87861');for(let j=0;j<4;j++)m.box(8,.7+j*.78,-5.3,2.6,.09,.65,'#f2cda1');for(let j=0;j<15;j++)m.box(6.8+j%5*.58,1.3+Math.floor(j/5)*.73,-4.8,.11,.55,.26,['#639ab9','#d9b16d','#a97cba'][j%3]);character(m,-7,0,-4.2,500+c,true);let ps=studentsFor(c);character(m,-6,0,3.0,ps[0].seed);character(m,-2,0,3.0,ps[1].seed);character(m,2,0,3.0,ps[2].seed);if(!isStoneClass(c)||(stoneCleared(c)&&!(hornState?.practice&&hornState.c===c)))character(m,6,0,3.0,ps[3].seed);m.sphere(8.2,3,-7.6,.53,'#f6c66c',8,6);if(isStoneClass(c)){m.roundBox(5.5,.26,-7.1,4.2,.40,2.1,.23,'#4c4e62',7);m.sphere(5.5,.52,-7.1,.65,'#8c7181',24,16,[1,.25,.75]);}}
 function hallway(m,floor){m.box(0,-.3,0,88,.6,16,'#e3c6ae');m.box(0,3,-8,88,6,.3,'#ebd6bd');m.box(0,3,8,88,6,.3,'#efddc8');m.box(0,6.1,0,88,.3,16,'#faf4e5');m.box(0,.05,0,87,.06,3.6,'#bfa68f');for(let j=0;j<11;j++){let x=-40+j*8;for(let sign of [-1,1]){m.box(x,2.2,sign*7.7,2.5,4.2,.16,'#a37a63');m.box(x,3.3,sign*7.55,1.6,.9,.17,'#bbdbe1');m.box(x,4.85,sign*7.3,3.2,.49,.17,'#f8e5c5');m.sphere(x+1.05,2.35,sign*7.6,.085,'#f5d582',8,5)}}for(let x=-38;x<45;x+=10)lamp(m,x,0);character(m,0,0,0,717)}
 function hall(m){shell(m);m.box(0,.55,-3,4,.8,1.4,'#bd9b76');m.sphere(0,1.85,-3,1.0,'#ebc16a');m.cylinder(0,.4,3.0,2.7,.45,'#d6bca0');m.cylinder(0,.73,3,2.35,.22,'#6db5d6');m.box(-7,1.4,-4,3.5,2.7,.7,'#986c57');m.box(7,1.4,-4,3.5,2.7,.7,'#986c57');character(m,-5,0,1,720,true);for(let q of [-6,6])tree(m,q,5,.45)}
 function subScene(m,id){shell(m);let p=id.split('-')[0],subId=id.split('-')[1];m.box(0,1.3,-5,4.5,2.2,1.25,'#b6afaa');m.box(0,2,-4.2,3.1,1.25,.11,'#76b5ca');m.box(-7,1.0,-4,2.9,1.0,1.6,'#c29d7d');m.box(7,1.0,-4,2.9,1.0,1.6,'#c29d7d');if(p==='air'){m.box(-3,1.4,1,3,.8,1.6,'#9dc2d6');m.box(3,1.4,1,3,.8,1.6,'#9dc2d6');m.cylinder(0,1.4,-3,.53,.7,'#e8e5d1');m.box(0,2,-2.7,1.6,.35,.2,'#5b88ba')}else if(p==='yacht'){m.box(0,.7,3,10,.23,3,'#d1a17b');m.cylinder(0,1.3,-3,1,.35,'#6489a9');m.box(4,1.9,1,1.0,1.2,1,'#b9d9de')}else if(p==='train'){for(let j=0;j<4;j++)m.box(-7+j*4,.83,2,2.3,.25,1.0,'#a5bedb');m.box(0,4,-8.3,9,1.1,.17,'#70b7da')}else if(p==='car'){car(m,0,1.5);m.box(5,.5,3,3,.8,2,'#e3b67a');m.cylinder(-6,1.1,1,.55,.7,'#8294a9')}else if(p==='lab'){for(let j=-1;j<=1;j++){m.box(j*4,.95,1.5,3.5,.2,1.2,'#c8ad95');m.box(j*4,1.3,1.5,.5,.6,.5,'#91d6d5')}m.sphere(0,2.4,-5,.8,'#91b8ce')}else if(p==='library'){for(let j=-1;j<=1;j++){m.box(j*4,1.9,-7.3,3.4,3.8,1,'#a77958');for(let i=0;i<8;i++)m.box(j*4-1.2+(i%4)*.7,.85+Math.floor(i/4)*1.5,-6.7,.45,1.1,.55,['#89acb7','#c8a766','#c48b91'][i%3])}bench(m,0,3)}else if(p==='garden'){for(let x of [-6,0,6])tree(m,x,0,.7,x===0);for(let x of [-4,4])m.sphere(x,.3,4,.5,'#ea94b2',10,6)}character(m,-4,0,1,817,true)}
@@ -590,7 +592,28 @@ function stoneCleared(c){return s.flags.includes('stone-cleared-'+c)}
 let hornState=null,hornBuf=null,hornStudentBuf=null,hornSparkBuf=null;
 function hornModel(m,horns){const dark='#4b4b58',bright='#82838d',glow='#d3658a';m.sphere(0,1.15,0,1.18,dark,34,24,[1,1.04,.80]);m.sphere(-.54,1.58,-.19,.59,'#696a75',24,18,[1,1,.95]);m.sphere(.64,.82,.12,.52,bright,24,18,[1.22,.65,.97]);m.sphere(.05,1.85,.31,.74,'#777781',26,20,[1,.47,.62]);let centers=horns===1?[0]:[-.56,.56];for(let x of centers){m.sphere(x,2.07,-.06,.41,'#a29b95',24,18,[.70,1,.82]);m.cone(x,2.90,-.13,.39,1.43,'#bfb8ad',24);m.sphere(x,3.60,-.13,.12,'#d5c9c1',18,12,[.65,1,.65])}for(let x of [-.38,.38]){m.sphere(x,1.58,.79,.22,'#d9c7cf',22,14,[1,.75,.39]);m.sphere(x,1.57,.91,.115,glow,20,14,[1,.68,.40])}m.sphere(0,1.04,.90,.33,'#30313a',24,16,[1,.18,.34]);for(let x of [-.77,.77])m.sphere(x,.39,.28,.31,'#575765',20,14,[.8,.4,1]);}
 function sparkleModel(){let m=new Mesh();for(let i=0;i<22;i++){let a=i*Math.PI*2/22,r=.22+(i%5)*.17;m.sphere(Math.cos(a)*r, .4+(i%7)*.24, Math.sin(a)*r,.065+(i%3)*.025,['#b9e7ff','#e4e1ff','#b8c7fc'][i%3],10,7)}return m}
-function initHornStoneForScene(){const c=stoneClassNo();if(hornState?.c===c&&!stoneCleared(c))return;if(gl){dropBuf(hornBuf);dropBuf(hornStudentBuf);dropBuf(hornSparkBuf)}hornBuf=hornStudentBuf=hornSparkBuf=null;$('stoneMeter').classList.add('hidden');$('stoneParticles').style.display='none';document.body.classList.remove('stone-danger');if(!c||stoneCleared(c)){hornState=null;return}let m=new Mesh();let horns=(c===4||c===15)?1:2;hornModel(m,horns);hornBuf=gl?bufferMesh(m):m;let n=new Mesh();character(n,0,0,0,studentsFor(c)[3].seed);hornStudentBuf=gl?bufferMesh(n):n;let v=s.flags.includes('stone-lost-'+c);let spark=sparkleModel();hornSparkBuf=gl?bufferMesh(spark):spark;hornState={c,horns,age:0,emerge:0,x:5.5,z:-7.1,lost:v,lostTime:-1,hitCool:0,warning:false,runTime:0};$('stoneMeter').classList.remove('hidden');document.body.classList.add('stone-danger');$('stoneMeterTitle').textContent=horns===1?'🪨 独角石怪在后排苏醒':'🪨 双角石怪在后排苏醒';}
+function initHornStoneForScene(practice=false) {
+  const c=stoneClassNo();
+  if(!practice&&hornState?.c===c&&(!stoneCleared(c)||hornState.practice))return;
+  if(gl){dropBuf(hornBuf);dropBuf(hornStudentBuf);dropBuf(hornSparkBuf);}
+  hornBuf=hornStudentBuf=hornSparkBuf=null;
+  $('stoneMeter').classList.add('hidden');
+  $('stoneParticles').style.display='none';
+  document.body.classList.remove('stone-danger');
+  if(!c||(!practice&&stoneCleared(c))){hornState=null;return;}
+  const mesh=new Mesh(),student=new Mesh(),spark=sparkleModel();
+  const horns=stoneQuestionCount(c)===6?2:1;
+  hornModel(mesh,horns);
+  character(student,0,0,0,studentsFor(c)[3].seed);
+  hornBuf=gl?bufferMesh(mesh):mesh;
+  hornStudentBuf=gl?bufferMesh(student):student;
+  hornSparkBuf=gl?bufferMesh(spark):spark;
+  hornState={c,horns,practice,age:0,emerge:0,x:5.5,z:-7.1,
+    lost:!practice&&s.flags.includes('stone-lost-'+c),lostTime:-1,hitCool:0,warning:false};
+  $('stoneMeter').classList.remove('hidden');
+  document.body.classList.add('stone-danger');
+  $('stoneMeterTitle').textContent=(practice?'⚡ 石怪竞速演练 · ':'🪨 后排苏醒 · ')+(horns===1?'独角':'双角');
+}
 function updateHornStone(dt) {
   const h = hornState;
   if (!h || s.locked || modalOpen()) return;
@@ -605,6 +628,7 @@ function updateHornStone(dt) {
     sound(140,.40,'triangle',.034,.18);
   }
   if (h.emerge === 1) {
+    const from = {x:h.x,z:h.z};
     const target = h.lost ? {x:s.px,z:s.pz} : {x:6,z:3};
     const dx = target.x - h.x, dz = target.z - h.z, distance = Math.hypot(dx,dz);
     if (distance > .01) {
@@ -613,11 +637,11 @@ function updateHornStone(dt) {
       h.z += dz / distance * advance;
       h.heading = Math.atan2(dx,dz);
     }
-    if (!h.lost && Math.hypot(6-h.x,3-h.z) < 1.25) {
+    if (!h.lost && CampusWorld.touchesPath(from,h,{x:6,z:3},1.25)) {
       h.lost = true;
       h.lostTime = h.age;
       const flag = 'stone-lost-' + h.c;
-      if (!s.flags.includes(flag)) { s.flags.push(flag); save(); }
+      if (!h.practice && !s.flags.includes(flag)) { s.flags.push(flag); save(); }
       fx.wrong();
       toast('✨ 同学化作星尘暂时离场。到结界答题，就能把他带回来！');
       const particles = $('stoneParticles');
@@ -625,14 +649,15 @@ function updateHornStone(dt) {
         '<span style="--a:'+i*360/22+'deg;animation-delay:'+(i%4)*.03+'s"></span>').join('');
       particles.style.display = 'block';
     }
-    if (Math.hypot(s.px-h.x,s.pz-h.z) < 1.45 && h.hitCool <= 0) {
+    const inSeal = Math.hypot(s.px-STONE_SEAL.x,s.pz-STONE_SEAL.z)<=4;
+    if (!inSeal && h.hitCool <= 0 && CampusWorld.touchesPath(from,h,{x:s.px,z:s.pz},1.45)) {
       h.hitCool = 2.8;
       s.px = 0;
       s.pz = 7;
       clearInput();
       save();
       fx.wrong();
-      toast('🌀 回到了安全点。可以绕开石怪，从另一边接近结界。');
+      toast('🌀 回到了安全点。趁短暂保护时间，按住 Shift 冲向结界。');
     }
   }
   const status = h.lost ? '⚠️ 同学等待救援' : h.emerge < 1 ? '从后排缓缓升起……' : '石怪正在向同学移动';
@@ -666,11 +691,30 @@ function stoneRescue(c) {
     dialog('🏅 '+c+'班已经安全',
       '<div class="stone-card">同学回到了教室。救援记录已保存。</div><button class="btn blue full" id="stoneResume">继续探索</button>');
     $('stoneResume').onclick = closeDialog;
+    if(hornState?.practice){
+      if(Math.hypot(s.px-STONE_SEAL.x,s.pz-STONE_SEAL.z)>4){
+        closeDialog();toast('走到蓝色结界附近，即可结束演练。');return;
+      }
+      hornState=null;renderScene();
+      $('dTitle').textContent='🏁 石怪竞速演练完成';
+      return;
+    }
+    const practice=document.createElement('button');
+    practice.className='btn full';
+    practice.textContent='⚡ 重玩石怪追逐';
+    practice.onclick=()=>{
+      closeDialog();
+      s.px=0;s.pz=6;
+      initHornStoneForScene(true);
+      renderScene();
+      toast('按住 Shift 或屏幕冲刺按钮。走到蓝色结界可结束演练。');
+    };
+    $('dBody').appendChild(practice);
     return;
   }
   const total = stoneQuestionCount(c);
   if (total === 6 && Math.hypot(s.px - STONE_SEAL.x, s.pz - STONE_SEAL.z) > 4) {
-    toast('走到讲台左侧的蓝色结界附近，再启动双角石怪救援。');
+    toast('走进讲台左侧的蓝色安全结界，再启动双角石怪救援。');
     return;
   }
   let idx = Math.min(s.stoneQuizProgress[c] || 0,total);
@@ -715,17 +759,25 @@ function stoneRescue(c) {
   show();
 }
 
-function buildScene(){let m=new Mesh();sceneMarkers=[];let id=s.scene,desc='',title='',bread='星梦世界 / ',tag='鼠标拖动旋转3D视角',actions=[];const A=(t,fn)=>actions.push([t,fn]);if(id==='street'){
+function buildScene(){let m=new Mesh();sceneMarkers=[];let id=s.scene,desc='',title='',bread='星梦世界 / ',tag='鼠标拖动旋转3D视角',actions=[];const A=(t,fn)=>actions.push([t,fn]);
+if(CampusDistricts.isScene(id)){
+ const data=CampusDistricts.build(id,m,A,{
+   marker,go,tree,lamp,bench,character,collect:uniqueCollect,students:studentsFor(22),person:personDialog,
+   player:()=>({x:s.px,z:s.pz}),toast
+ });
+ if(data)return {mesh:m,title:data.title,desc:data.desc,bread:bread+data.title,tag:'三街探险',actions,camera:data.camera};
+}
+if(id==='street'){
  const data=neighborhood.build(m,A);
  return {mesh:m,title:data.title,desc:data.desc,bread:bread+data.title,tag:'自行车 · 小车 · 轻轨 · 小吃摊',actions,camera:data.camera};
 }if(id==='campus'){campus(m);campusDetails(m);neighborhood.gateAtCampus(m);
-marker('door','🚪 走出校门','exit-campus',0,4.8,30,()=>go('street'));
-A('🚪 走出校门 · 放学街区',()=>go('street'));title='🌳 星梦校园 · 二年级上学期冒险';desc='校园的每个地点都有可旋转的立体空间。乘飞机、坐轻轨、驾驶小车、开游艇，也可以进入学校学习、与同学交朋友。';camera={theta:.74,phi:.96,dist:73,target:[0,3,-1]};const buildings=[['🏫 星梦学校','hall',0,7,-8],['✈️ 飞机场','air',-27,4,-14],['🛥️ 游艇','yacht',-30,3,16],['🚈 轻轨','train',24,7,-12],['🚗 小车','car',25,4,13],['📚 图书馆','library',-11,7,20],['🧪 科学馆','lab',11,7,20],['🌷 花园','garden',32,4,22]];buildings.forEach(([label,to,x,y,z])=>{marker('door',label,to,x,y,z,()=>go(to));A(label,()=>go(to))});marker('item','✨ 隐藏彩蛋','egg',0,2.6,4,()=>runAction('egg'));A('✨ 音乐喷泉彩蛋',()=>runAction('egg'));}else if(id==='hall'){hall(m);title='🏛️ 星梦学校 · 探索大厅';desc='大理石地板、金色校徽、书柜和校长办公室。请探索一楼、二楼，22个班级都能进门。';camera={theta:.20,phi:1.04,dist:23.5,target:[0,2,-2]};marker('person','👨‍🏫 林校长','principal',-5,3,1,()=>runAction('principal'));marker('item','🗝️ 秘密书柜','desk',-7,3,-4,()=>runAction('desk'));marker('door','🚪 一层教室','floor-1',-5,4,-8,()=>go('floor-1'));marker('door','🚪 二层教室','floor-2',5,4,-8,()=>go('floor-2'));marker('item','🏫 钟楼秘密','clock',0,3,-3,()=>runAction('clock'));[['👨‍🏫 找校长','principal'],['🗝️ 调查校长书柜','desk'],['🕒 调查神秘时钟','clock']].forEach(([t,k])=>A(t,()=>runAction(k)));A('🚪 进入教学楼一层',()=>go('floor-1'));A('🚪 进入教学楼二层',()=>go('floor-2'));}else if(id.startsWith('floor-')){let f=Number(id.slice(6));hallway(m,f);title='🚪 教学楼 '+(f===1?'一':'二')+'层 · 班级长廊';desc=f===1?'一层：二年级1班至11班。点击教室门牌进入班级，与老师和四位同学交流。':'二层：二年级12班至22班。22班里藏着化学实验特别任务。';camera={theta:.09,phi:1.0,dist:62,target:[0,2,0]};for(let i=1;i<=11;i++){let c=f===1?i:i+11,x=-40+(i-1)*8,z=i%2?7.7:-7.7;marker('door',c+'班','class-'+c,x,4,z,()=>go('class-'+c));A('🚪 进入二年级'+c+'班'+(s.stamps.includes(c)?' · 已通关':''),()=>go('class-'+c))}marker('door','🔄 切换楼层','swap',0,4,0,()=>go('floor-'+(f===1?2:1)));A('🛗 切换到'+(f===1?'二':'一')+'层',()=>go('floor-'+(f===1?2:1)));}else if(id.startsWith('class-')){let c=Number(id.slice(6)),p=teacherFor(c);classroom(m,c);if(c===22)secretPortal(m);title='📘 二年级'+c+'班 · '+topics[c-1]+'课堂';desc=`欢迎来到二年级${c}班。本班由${p.name}带领，四位同学都能和你交流；回答老师8道进阶题，就能获得专属班级印章。`;camera={theta:.18,phi:1.09,dist:23.0,target:[0,1.9,-2]};marker('person','👩‍🏫 '+p.name,'teacher',-7,3.0,-4.2,()=>runAction('teacher'));A('👩‍🏫 和 '+p.name+' 交流、挑战',()=>runAction('teacher'));studentsFor(c).forEach((p,i)=>{let x=-6+i*4,z=3.0;marker('person','👤 '+p.name,'student-'+i,x,2.7,z,()=>runAction('student-'+i));A('👤 和 '+p.name+' 同学聊天',()=>{if(hornState?.lost&&i===3){toast('这位同学暂时离场。去结界完成救援吧。');return}runAction('student-'+i)})});marker('item','📖 黑板上的秘密','chalk',0,5,-8.2,()=>runAction('chalk'));marker('item','📚 翻看图书角','book',8,4,-5.6,()=>runAction('book'));A('🖍️ 看看黑板的隐藏彩蛋',()=>runAction('chalk'));A('📚 探索班级图书角',()=>runAction('book'));if(isStoneClass(c)){desc+=' ⚠️ 请小心，教室后排出现一块会自己活动的长角石头！';marker('item','🪨 调查后排角石怪','stone-watch',5.5,3.5,-6.2,()=>stoneObserve(c));A('🪨 调查石怪的独角或双角',()=>stoneObserve(c));marker('item','🛡️ 开启石怪救援结界','stone-rescue',-3,2.4,-5.5,()=>stoneRescue(c));A('🛡️ 回答'+stoneQuestionCount(c)+'道题 · 救援同学',()=>stoneRescue(c));m.cylinder(-3,.09,-5.5,1.18,.12,'#679bb0',24);m.cylinder(-3,.16,-5.5,.86,.07,'#9cd1ce',24);}if(c===22){marker('item','🧪 元素图鉴挑战','class22',4,2,-5,()=>{dialog('🧪 22班 · 科学社团',`<h3>化学元素和小小实验</h3><p>氦的化学符号是 He，铁是 Fe，水是 H₂O。实验室的化学试剂不能尝、不能随意混合。今天我们一起当校园科学家！</p><button class="btn blue full" id="lab22">🔬 前往未来科学馆</button>`);$('lab22').onclick=()=>{closeDialog();go('lab')}});A('🧪 元素探索社团',()=>elementMuseum());A('🧪 22班特别科学互动',()=>{dialog('🧪 22班 · 科学社团',`<p>元素周期表探索：氢 H、氦 He、氧 O、铁 Fe。所有化学实验必须由老师指导，不能混合未知物质。</p><button class="btn blue full" id="lab22">前往未来科学馆</button>`);$('lab22').onclick=()=>{closeDialog();go('lab')}});marker('door','👁️ 22班后墙 · 禁区暗门','secret-door',9.4,3.2,-7.6,()=>secretDoor());A('👁️ 调查22班后墙：神秘禁区',()=>secretDoor());}}else if(id.startsWith('secret-')){let sec=buildSecretScene(m,id,A);title=sec.title;desc=sec.desc;camera=sec.camera;}else{let p=id.split('-')[0],cfg=zones[p];if(!cfg){title=id;desc='秘密房间';}else{let sub=id.includes('-'),entry=cfg.children.find(x=>x[0]===id);title=cfg.icon+' '+cfg.name+(sub?' · '+(entry?entry[1]:'内部探索'):'');desc=sub?'深入探索内部设施。可与工作人员交谈、完成检查、寻找隐藏宝物，再返回上一级房间。':'这里不是单一点击按钮！你可以继续进入三个不同的三维子空间，并在那里调查道具、领取奖励。';camera={theta:.35,phi:1.0,dist:sub?23:32,target:[0,2,0]};if(!sub){m.box(0,-.45,0,36,.8,29,'#9dcfb1');m.box(0,-.04,5,17,.15,12,'#ecd5ac');if(p==='air')plane(m,0,0);if(p==='yacht'){m.box(0,-.13,-5,40,.25,35,'#71bddd');yacht(m,0,0)}if(p==='car')car(m,0,0);if(p==='train')train(m,0,0);if(p==='lab'||p==='library'||p==='garden'){building(m,0,0,p==='lab'?'#c2d9df':'#e3b5bb');for(let x of [-11,11])tree(m,x,2,.7)}cfg.children.forEach((child,i)=>{let x=-8+i*8, y=p==='air'?4:3,z=8;marker('door',child[1],child[0],x,y,z,()=>go(child[0]));A('🚪 '+child[1],()=>go(child[0]))});if(p==='car'||p==='train')A('🚪 前往校门外 · 实际驾驶或乘车',()=>go('street'));}else{subScene(m,id);for(let k of [['🔍 搜索秘密道具','safe',-7,2,-3],['🗣️ 向工作人员学习','worker',0,4,-4],['⭐ 完成场景任务','transport',7,2,2]]){let [label,key,x,y,z]=k;marker('item',label,key,x,y,z,()=>key==='worker'?personDialog({name:'校园工作人员',seed:848,adult:true},'这里的机械和科学装置都有用。先观察、再思考，并始终把安全放在第一位。',{key:'worker-'+id}):runAction(key));A(label,()=>key==='worker'?personDialog({name:'校园工作人员',seed:848,adult:true},'只要学会发现问题、独立思考，任何地方都能成为课堂。',{key:'worker-'+id}):runAction(key));}marker('item','📦 调查物品箱','cabinet',5,2,-5,()=>runAction('cabinet'));A('📦 调查物品箱',()=>runAction('cabinet'));}}}if(id!=='campus'){marker('door','↩ 返回上一级','back',-9,3,6,()=>back());A('↩ 返回上一场景',back)}return {mesh:m,title,desc,bread:bread+title,tag,actions};}
-function renderScene(){document.body.classList.toggle('shadow-zone',s.scene.startsWith('secret-'));if(s.scene.startsWith('secret-')&&s.audio)sound(118,.33,'triangle',.025);let data=buildScene();if(data.camera)camera=data.camera;
+marker('door','🚪 走出校门','exit-campus',0,4.8,30,()=>go('school-street'));
+A('🚪 走出校门 · 学校街',()=>go('school-street'));title='🌳 星梦校园 · 二年级上学期冒险';desc='校园的每个地点都有可旋转的立体空间。乘飞机、坐轻轨、驾驶小车、开游艇，也可以进入学校学习、与同学交朋友。';camera={theta:.74,phi:.96,dist:73,target:[0,3,-1]};const buildings=[['🏫 星梦学校','hall',0,7,-8],['✈️ 飞机场','air',-27,4,-14],['🛥️ 游艇','yacht',-30,3,16],['🚈 轻轨','train',24,7,-12],['🚗 小车','car',25,4,13],['📚 图书馆','library',-11,7,20],['🧪 科学馆','lab',11,7,20],['🌷 花园','garden',32,4,22]];buildings.forEach(([label,to,x,y,z])=>{marker('door',label,to,x,y,z,()=>go(to));A(label,()=>go(to))});marker('item','✨ 隐藏彩蛋','egg',0,2.6,4,()=>runAction('egg'));A('✨ 音乐喷泉彩蛋',()=>runAction('egg'));}else if(id==='hall'){hall(m);title='🏛️ 星梦学校 · 探索大厅';desc='大理石地板、金色校徽、书柜和校长办公室。请探索一楼、二楼，22个班级都能进门。';camera={theta:.20,phi:1.04,dist:23.5,target:[0,2,-2]};marker('person','👨‍🏫 林校长','principal',-5,3,1,()=>runAction('principal'));marker('item','🗝️ 秘密书柜','desk',-7,3,-4,()=>runAction('desk'));marker('door','🚪 一层教室','floor-1',-5,4,-8,()=>go('floor-1'));marker('door','🚪 二层教室','floor-2',5,4,-8,()=>go('floor-2'));marker('item','🏫 钟楼秘密','clock',0,3,-3,()=>runAction('clock'));[['👨‍🏫 找校长','principal'],['🗝️ 调查校长书柜','desk'],['🕒 调查神秘时钟','clock']].forEach(([t,k])=>A(t,()=>runAction(k)));A('🚪 进入教学楼一层',()=>go('floor-1'));A('🚪 进入教学楼二层',()=>go('floor-2'));}else if(id.startsWith('floor-')){let f=Number(id.slice(6));hallway(m,f);title='🚪 教学楼 '+(f===1?'一':'二')+'层 · 班级长廊';desc=f===1?'一层：二年级1班至11班。点击教室门牌进入班级，与老师和四位同学交流。':'二层：二年级12班至22班。22班里藏着化学实验特别任务。';camera={theta:.09,phi:1.0,dist:62,target:[0,2,0]};for(let i=1;i<=11;i++){let c=f===1?i:i+11,x=-40+(i-1)*8,z=i%2?7.7:-7.7;marker('door',c+'班','class-'+c,x,4,z,()=>go('class-'+c));A('🚪 进入二年级'+c+'班'+(s.stamps.includes(c)?' · 已通关':''),()=>go('class-'+c))}marker('door','🔄 切换楼层','swap',0,4,0,()=>go('floor-'+(f===1?2:1)));A('🛗 切换到'+(f===1?'二':'一')+'层',()=>go('floor-'+(f===1?2:1)));}else if(id.startsWith('class-')){let c=Number(id.slice(6)),p=teacherFor(c);classroom(m,c);if(c===22)secretPortal(m);title='📘 二年级'+c+'班 · '+topics[c-1]+'课堂';desc=`欢迎来到二年级${c}班。本班由${p.name}带领，四位同学都能和你交流；回答老师8道进阶题，就能获得专属班级印章。`;camera={theta:.18,phi:1.09,dist:23.0,target:[0,1.9,-2]};marker('person','👩‍🏫 '+p.name,'teacher',-7,3.0,-4.2,()=>runAction('teacher'));A('👩‍🏫 和 '+p.name+' 交流、挑战',()=>runAction('teacher'));studentsFor(c).forEach((p,i)=>{let x=-6+i*4,z=3.0;marker('person','👤 '+p.name,'student-'+i,x,2.7,z,()=>runAction('student-'+i));A('👤 和 '+p.name+' 同学聊天',()=>{if(hornState?.lost&&i===3){toast('这位同学暂时离场。去结界完成救援吧。');return}runAction('student-'+i)})});marker('item','📖 黑板上的秘密','chalk',0,5,-8.2,()=>runAction('chalk'));marker('item','📚 翻看图书角','book',8,4,-5.6,()=>runAction('book'));A('🖍️ 看看黑板的隐藏彩蛋',()=>runAction('chalk'));A('📚 探索班级图书角',()=>runAction('book'));if(isStoneClass(c)){desc+=' ⚠️ 请小心，教室后排出现一块会自己活动的长角石头！';marker('item','🪨 调查后排角石怪','stone-watch',5.5,3.5,-6.2,()=>stoneObserve(c));A('🪨 调查石怪的独角或双角',()=>stoneObserve(c));marker('item','🛡️ 开启石怪救援结界','stone-rescue',-3,2.4,-5.5,()=>stoneRescue(c));A('🛡️ 回答'+stoneQuestionCount(c)+'道题 · 救援同学',()=>stoneRescue(c));m.cylinder(-3,.024,-5.5,3.95,.022,'#a6b8b2',32);m.cylinder(-3,.09,-5.5,1.18,.12,'#679bb0',24);m.cylinder(-3,.16,-5.5,.86,.07,'#9cd1ce',24);}if(c===22){marker('item','🧪 元素图鉴挑战','class22',4,2,-5,()=>{dialog('🧪 22班 · 科学社团',`<h3>化学元素和小小实验</h3><p>氦的化学符号是 He，铁是 Fe，水是 H₂O。实验室的化学试剂不能尝、不能随意混合。今天我们一起当校园科学家！</p><button class="btn blue full" id="lab22">🔬 前往未来科学馆</button>`);$('lab22').onclick=()=>{closeDialog();go('lab')}});A('🧪 元素探索社团',()=>elementMuseum());A('🧪 22班特别科学互动',()=>{dialog('🧪 22班 · 科学社团',`<p>元素周期表探索：氢 H、氦 He、氧 O、铁 Fe。所有化学实验必须由老师指导，不能混合未知物质。</p><button class="btn blue full" id="lab22">前往未来科学馆</button>`);$('lab22').onclick=()=>{closeDialog();go('lab')}});marker('door','👁️ 22班后墙 · 禁区暗门','secret-door',9.4,3.2,-7.6,()=>secretDoor());A('👁️ 调查22班后墙：神秘禁区',()=>secretDoor());}}else if(id.startsWith('secret-')){let sec=buildSecretScene(m,id,A);title=sec.title;desc=sec.desc;camera=sec.camera;}else{let p=id.split('-')[0],cfg=zones[p];if(!cfg){title=id;desc='秘密房间';}else{let sub=id.includes('-'),entry=cfg.children.find(x=>x[0]===id);title=cfg.icon+' '+cfg.name+(sub?' · '+(entry?entry[1]:'内部探索'):'');desc=sub?'深入探索内部设施。可与工作人员交谈、完成检查、寻找隐藏宝物，再返回上一级房间。':'这里不是单一点击按钮！你可以继续进入三个不同的三维子空间，并在那里调查道具、领取奖励。';camera={theta:.35,phi:1.0,dist:sub?23:32,target:[0,2,0]};if(!sub){m.box(0,-.45,0,36,.8,29,'#9dcfb1');m.box(0,-.04,5,17,.15,12,'#ecd5ac');if(p==='air')plane(m,0,0);if(p==='yacht'){m.box(0,-.13,-5,40,.25,35,'#71bddd');yacht(m,0,0)}if(p==='car')car(m,0,0);if(p==='train')train(m,0,0);if(p==='lab'||p==='library'||p==='garden'){building(m,0,0,p==='lab'?'#c2d9df':'#e3b5bb');for(let x of [-11,11])tree(m,x,2,.7)}cfg.children.forEach((child,i)=>{let x=-8+i*8, y=p==='air'?4:3,z=8;marker('door',child[1],child[0],x,y,z,()=>go(child[0]));A('🚪 '+child[1],()=>go(child[0]))});if(p==='car'||p==='train')A('🚪 前往校门外 · 实际驾驶或乘车',()=>go('street'));}else{subScene(m,id);for(let k of [['🔍 搜索秘密道具','safe',-7,2,-3],['🗣️ 向工作人员学习','worker',0,4,-4],['⭐ 完成场景任务','transport',7,2,2]]){let [label,key,x,y,z]=k;marker('item',label,key,x,y,z,()=>key==='worker'?personDialog({name:'校园工作人员',seed:848,adult:true},'这里的机械和科学装置都有用。先观察、再思考，并始终把安全放在第一位。',{key:'worker-'+id}):runAction(key));A(label,()=>key==='worker'?personDialog({name:'校园工作人员',seed:848,adult:true},'只要学会发现问题、独立思考，任何地方都能成为课堂。',{key:'worker-'+id}):runAction(key));}marker('item','📦 调查物品箱','cabinet',5,2,-5,()=>runAction('cabinet'));A('📦 调查物品箱',()=>runAction('cabinet'));}}}if(id!=='campus'){marker('door','↩ 返回上一级','back',-9,3,6,()=>back());A('↩ 返回上一场景',back)}return {mesh:m,title,desc,bread:bread+title,tag,actions};}
+function renderScene(){document.body.classList.toggle('shadow-zone',s.scene.startsWith('secret-')||s.scene.startsWith('cave-'));$('sprintBtn').classList.toggle('hidden',!stoneClassNo());if(s.scene.startsWith('secret-')&&s.audio)sound(118,.33,'triangle',.025);let data=buildScene();if(data.camera)camera=data.camera;
 sceneCamera={...camera,target:[...camera.target]};
 if(gl)dropBuf(currentMesh);currentMesh=gl?bufferMesh(data.mesh):data.mesh;
 neighborhood.prepare(gl?bufferMesh:mesh=>mesh,gl?dropBuf:()=>{});
-softStamp='';initHornStoneForScene();$('sceneTitle').textContent=data.title;$('bread').textContent=data.bread;$('sceneDesc').textContent=data.desc;$('sceneTag').textContent=stoneClassNo()?'🪨 角石守护 · '+(s.flags.includes('stone-cleared-'+stoneClassNo())?'已净化':'危险区域'):(s.scene.startsWith('class-')?'🏅 '+s.stamps.length+'/22 枚班级印章':(s.scene==='street'?data.tag:'可自由旋转视角'));$('actions').innerHTML='';for(let [t,fn] of data.actions){let b=document.createElement('button');b.className='action';b.innerHTML='<span class="ic">'+t.split(' ')[0]+'</span><span>'+t.split(' ').slice(1).join(' ')+'</span>';b.onclick=()=>guard(fn);$('actions').appendChild(b)}$('markers').innerHTML='';markerNodes=[];sceneMarkers.forEach((m,i)=>{let b=document.createElement('button');b.className='floatlabel '+(m.kind==='person'?'person':m.kind==='door'?'door':'');b.innerHTML='<span class="dot"></span>'+m.title;b.onclick=e=>{e.stopPropagation();guard(m.fn)};$('markers').appendChild(b);markerNodes.push([m,b])});$('classPanel').classList.toggle('hidden',s.scene!=='hall'&&!s.scene.startsWith('floor-')&&!s.scene.startsWith('class-'));buildClassGrid();hud();save();}
+softStamp='';initHornStoneForScene();$('sceneTitle').textContent=data.title;$('bread').textContent=data.bread;$('sceneDesc').textContent=data.desc;$('sceneTag').textContent=stoneClassNo()?'🪨 角石守护 · '+(s.flags.includes('stone-cleared-'+stoneClassNo())?'已净化':'危险区域'):(s.scene.startsWith('class-')?'🏅 '+s.stamps.length+'/22 枚班级印章':(CampusDistricts.isOutdoor(s.scene)||CampusDistricts.isScene(s.scene)?data.tag:'可自由旋转视角'));$('actions').innerHTML='';for(let [t,fn] of data.actions){let b=document.createElement('button');b.className='action';b.innerHTML='<span class="ic">'+t.split(' ')[0]+'</span><span>'+t.split(' ').slice(1).join(' ')+'</span>';b.onclick=()=>guard(fn);$('actions').appendChild(b)}$('markers').innerHTML='';markerNodes=[];sceneMarkers.forEach((m,i)=>{let b=document.createElement('button');b.className='floatlabel '+(m.kind==='person'?'person':m.kind==='door'?'door':'');b.innerHTML='<span class="dot"></span>'+m.title;b.onclick=e=>{e.stopPropagation();guard(m.fn)};$('markers').appendChild(b);markerNodes.push([m,b])});$('classPanel').classList.toggle('hidden',s.scene!=='hall'&&!s.scene.startsWith('floor-')&&!s.scene.startsWith('class-'));buildClassGrid();hud();save();}
 function buildClassGrid(){const g=$('classGrid');g.innerHTML='';for(let i=1;i<=22;i++){let b=document.createElement('button');b.textContent=i+'班';b.className=(s.stamps.includes(i)?'on ':'')+(s.scene==='class-'+i?'active':'');b.onclick=()=>go('class-'+i);g.appendChild(b)}}
 function renderSoftMesh(ctx,mesh,offset=[0,0,0],yaw=0,spin=0) {
   if(!mesh||!mesh.p)return;
@@ -761,7 +813,7 @@ function readInput() {
   return {
     x:Number(active.has('right'))-Number(active.has('left')),
     z:Number(active.has('down'))-Number(active.has('up')),
-    brake:active.has('brake')
+    brake:active.has('brake'),sprint:active.has('sprint')
   };
 }
 function walk(input, dt) {
@@ -771,14 +823,18 @@ function walk(input, dt) {
   if (s.scene==='street') {
     const next=CampusWorld.moveOnFoot({x:s.px,z:s.pz},input,dt);
     s.px=next.x;s.pz=next.z;
-    if(s.pz<=CampusWorld.GATE_Z-.3 && Math.abs(s.px)<2.8)go('campus');
+  } else if (CampusDistricts.isScene(s.scene)) {
+    const next=CampusDistricts.move(s.scene,{x:s.px,z:s.pz},input,dt);
+    s.px=next.x;s.pz=next.z;
   } else {
     const width=s.scene==='campus'?44:s.scene.startsWith('floor-')?42:10.5;
-    const velocity=9*dt/Math.hypot(x,z);
+    const velocity=(stoneClassNo()&&input.sprint?22:9)*dt/Math.hypot(x,z);
     s.px=clamp(s.px+x*velocity,-width,width);
     s.pz=clamp(s.pz+z*velocity,s.scene==='campus'?-32:-7,s.scene==='campus'?34:8);
-    if(s.scene==='campus' && s.pz>=31.5 && Math.abs(s.px)<2.8)go('street');
+    if(s.scene==='campus' && s.pz>=31.5 && Math.abs(s.px)<2.8)go('school-street');
   }
+  const nextStreet=CampusDistricts.walkingExit(s.scene,{x:s.px,z:s.pz});
+  if(nextStreet)go(nextStreet);
 }
 function draw(now) {
   requestAnimationFrame(draw);
@@ -798,11 +854,11 @@ function draw(now) {
   if(canvas.width!==w||canvas.height!==h){
     canvas.width=w;canvas.height=h;if(gl)gl.viewport(0,0,w,h);softStamp='';
   }
-  if(s.scene==='street' && gl){
+  if(CampusDistricts.isOutdoor(s.scene) && gl){
     const tracked=neighborhood.anchor() || {x:s.px,z:s.pz};
     const mounted=Boolean(neighborhood.active());
     const follow=1-Math.exp(-dt*3.5);
-    const tx=clamp(tracked.x,mounted?-38:-23,mounted?38:23),tz=clamp(tracked.z,mounted?-17:2,mounted?24:15);
+    const tx=clamp(tracked.x,mounted?-38:-23,mounted?38:23),tz=clamp(tracked.z,mounted?-17:s.scene==='street'?2:-5,mounted?24:15);
     camera.target[0]+=(tx-camera.target[0])*follow;
     camera.target[2]+=(tz-camera.target[2])*follow;
   }
@@ -861,6 +917,14 @@ function elementMuseum(){let owned=Array.isArray(s.learning.elements)?s.learning
 function elementChallenge(i){let e=ELEMENTS[i],opts=[e[1],ELEMENTS[(i+1)%8][1],ELEMENTS[(i+3)%8][1],ELEMENTS[(i+5)%8][1]];let order=[2,0,3,1].map(x=>opts[x]);const answer=order.indexOf(e[1]);dialog('🔬 元素卡片 · '+e[0],`<div style="text-align:center;border-radius:16px;padding:12px;background:#e6efff"><b style="font-size:45px;color:#345fbd">${e[0]}</b><div>${e[2]}。</div></div><p class="quiztitle">选择题：元素符号 ${e[0]} 表示什么元素？</p><div class="choices" id="elementChoices">${order.map((x,k)=>`<button data-ec="${k}">${'ABCD'[k]}. ${x}</button>`).join('')}</div><p class="sm" id="elementFeed">仔细观察，答错可以再试。</p><button class="btn full" id="backElements">返回元素图鉴</button>`);$('backElements').onclick=elementMuseum;$('elementChoices').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(Number(b.dataset.ec)!==answer){fx.wrong();$('elementFeed').textContent='再看看卡片的元素名称和符号。';return}let owned=Array.isArray(s.learning.elements)?s.learning.elements:[];if(!owned.includes(e[0])){owned.push(e[0]);s.learning.elements=owned;reward(3,10)}fx.success();$('elementFeed').textContent='✅ 答对了！收藏元素 '+e[1]+' · '+e[0]+'。';$('elementChoices').querySelectorAll('button').forEach(b=>b.disabled=true);save()})}
 function learningPanel(){const rep=CampusLearning.report(s.learning),subjects=['cn','ma','sci'];const parts=subjects.map(t=>{let x=rep[t];return `<div class="panel"><b>${x.name}</b> · ${x.label}（${x.level}/3）<div class="progress"><i style="width:${x.total?x.accuracy:0}%"></i></div><div class="sm">已答 ${x.total} 题 · 首次答对率 ${x.total?x.accuracy+'%':'尚未开始'} ${x.recent!==null?'· 最近表现 '+x.recent+'%':''}</div></div>`}).join('');let mistakes=s.learning.mistakes.filter(v=>!v.reviewed).slice(0,8);dialog('📊 我的成长档案 · 二年级上学期',`<div class="panel"><b>🎯 当前成长目标</b><p class="sm">不追求一直做更难的题：优先做到读题准确、计算稳定、敢于观察和提问。连续表现稳定后，难度最多提高一个小台阶。</p><div class="sm">累计完成 ${s.learning.total} 道题 · 22班印章 ${s.stamps.length}/22 · 科学兴趣题可以作为奖励探索</div></div>${parts}<h3>📒 错题回顾（未复习 ${s.learning.mistakes.filter(v=>!v.reviewed).length} 题）</h3>${mistakes.length?mistakes.map((x,i)=>`<div class="panel"><b>${escapeText(x.question)}</b><p class="sm">${escapeText(x.explain)}</p><button class="btn" data-reviewed="${s.learning.mistakes.indexOf(x)}">我已经理解了 ✓</button></div>`).join(''):'<p class="sm">现在没有待复习的错题。</p>'}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn blue" id="learningBackup">💾 导出成长记录</button><button class="btn" id="learningSettings">⚙️ 设置</button></div>`);$('learningBackup').onclick=exportProgress;$('learningSettings').onclick=parentPanel;$('dBody').querySelectorAll('[data-reviewed]').forEach(b=>b.onclick=()=>{CampusLearning.review(s.learning,Number(b.dataset.reviewed));save();learningPanel()})}
 
+function showWorldMap(){
+  if(modalOpen())return;
+  if(s.locked){openQuiz();return;}
+  dialog('🗺️ 三街地图',`<p class="sm">从西向东依次经过学校街、小吃摊街和我的家街。也可以直接选择要去的街。</p>
+    <div class="map-links">${CampusDistricts.streets.map(area=>`<button class="btn" data-district="${area.id}">
+      ${area.icon} ${area.name}<small>${area.note}</small></button>`).join('')}</div>`);
+  $('dBody').querySelectorAll('[data-district]').forEach(button=>button.onclick=()=>{closeDialog();go(button.dataset.district);});
+}
 function bind(){
   let drag=null;
   const view=$('view');
@@ -879,7 +943,7 @@ function bind(){
   for(const event of ['pointerup','pointercancel','lostpointercapture'])view.addEventListener(event,endDrag);
   view.addEventListener('wheel',e=>{
     e.preventDefault();
-    camera.dist=clamp(camera.dist*(e.deltaY>0?1.1:.91),12,['campus','street'].includes(s.scene)?135:95);
+    camera.dist=clamp(camera.dist*(e.deltaY>0?1.1:.91),12,(s.scene==='campus'||CampusDistricts.isOutdoor(s.scene))?135:95);
   },{passive:false});
   $('resetCamera').onclick=()=>{if(sceneCamera)camera={...sceneCamera,target:[...sceneCamera.target]};};
   $('interactBtn').onclick=interactNearest;
@@ -895,7 +959,7 @@ function bind(){
       if(touchHeld.delete(e.pointerId)&&!neighborhood.active())save();
     });
   }
-  const keys={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
+  const keys={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right',shift:'sprint'};
   window.addEventListener('keydown',e=>{
     if(modalOpen()||e.target.matches('input,textarea,select,[contenteditable]'))return;
     const key=e.key.toLowerCase();
@@ -910,7 +974,10 @@ function bind(){
   $('rideLeave').onclick=()=>neighborhood.dismount();
   $('rideDepart').onclick=()=>neighborhood.depart();
   $('goStreet').onclick=()=>go('street');
-  $('goMap').onclick=()=>go('campus');$('goHall').onclick=()=>go('hall');$('go22').onclick=()=>go('class-22');$('goSecret').onclick=()=>go('secret-entrance');$('goFloor').onclick=()=>go('floor-1');$('floor1').onclick=()=>go('floor-1');$('floor2').onclick=()=>go('floor-2');$('backBtn').onclick=back;$('dClose').onclick=closeDialog;$('shade').addEventListener('click',e=>{if(e.target===$('shade'))closeDialog()});$('soundBtn').onclick=()=>{s.audio=!s.audio;save();$('soundBtn').textContent=s.audio?'🔊 音效开启':'🔇 开启音效';if(s.audio)fx.unlock();music()};$('bagBtn').onclick=()=>{dialog('🎒 我的探险收藏',`<h3>🌟 探险奖励</h3><p>游戏目标：集齐22枚知识印章，解锁荣誉毕业典礼。${s.graduated?'🎓 已完成全校主线！':''}</p><p>累计获得 ⭐${s.star} 星星，🪙${s.coin} 金币。</p><h3>🏅 班级印章（${s.stamps.length}/22）</h3><p class="sm">${s.stamps.length?s.stamps.map(x=>x+'班').join('、'):'还没有印章，去教室向老师挑战！'}</p><h3>🪨 后排石怪救援记录</h3><p class="sm">${[4,9,15,22].map(c=>c+'班：'+(s.flags.includes('stone-cleared-'+c)?'✅ 已净化':s.flags.includes('stone-lost-'+c)?'⚠️ 同学待救援':'🔎 尚未调查')).join(' · ')}</p><h3>👁️ 22班禁区档案</h3><p class="sm">${s.flags.includes('secret-clear')?'🏆 禁区最终Boss已净化！':'已完成'+secretStepCount()+'/4重试炼。入口位于二年级22班的教室后墙。'}</p><h3>✨ 隐藏发现（${s.eggs.length}）</h3><p class="sm">${s.eggs.length?s.eggs.map(x=>'⭐ '+escapeText(x)).join('、'):'细心调查每个教室和交通工具。'}</p><button class="btn full" id="collectionSnacks">🍡 打开零食袋</button>`);$('collectionSnacks').onclick=neighborhood.showBag;};$('elementBtn').onclick=elementMuseum;$('learningBtn').onclick=learningPanel;$('parentBtn').onclick=parentPanel;$('helpBtn').onclick=()=>dialog('📜 3D 校园探险玩法',`<p><b>操作：</b>按住鼠标左键或手指拖动可旋转3D视角，滚轮缩放；用方向键、WASD或触屏方向键控制人物在校园或教室里行走。按 E 或点「互动」与附近的人物、物品交流，也可以直接点击场景标签。</p><p><b>放学街区：</b>从校门出去。骑车或开车时 W 加速、S 倒车、A/D 转向，空格刹车；停稳按 E 下车。轻轨停站后上车，按 W 或点击发车。小吃可用游戏金币购买。</p><p><b>学习关卡：</b>首次进入游戏进行12道二年级上学期适龄题（语文6题、数学6题）；此后每60分钟进行一次。未完成不能离开魔法教室。每班还有8道适龄题（语文3题、数学3题、科学兴趣2题）。</p><p><b>同学：</b>每个班有4位有名字和不同形象的同学，还有本班老师；四位同学分别有语文、数学、科学兴趣和观察小挑战，可以收集88张友谊贴纸。老师可开启班级挑战并发放专属印章。</p><p><b>角石魔影：</b>第4、9、15、22班的教室后排藏着独角或双角石怪，会自动现身并靠近同学。触碰后人物化为光点并暂时离场（无血腥画面）；可躲避危险并完成4道独角或6道双角救援题，让同学重新出现。玩家被碰到会返回安全位置，不会丢失存档。</p><p><b>22班禁区：</b>在二年级22班后墙找到发光暗门，依次经历黑影线索、雾影怪物、机械守卫、禁区Boss。通过观察与答题化解危机，不进行攻击；完成后奖励传说徽章。</p><p><b>声音：</b>点击右上角🔇开启音效后播放提示声和轻柔的原创合成背景旋律，随时可关闭。</p><p><b>存档：</b>当前浏览器自动保存。文件不依赖联网，但不同浏览器或设备的存档不自动同步。</p>`)}
+  $('goSchoolStreet').onclick=()=>go('school-street');
+  $('goHomeStreet').onclick=()=>go('home-street');
+  $('worldMap').onclick=showWorldMap;
+  $('goMap').onclick=()=>go('campus');$('goHall').onclick=()=>go('hall');$('go22').onclick=()=>go('class-22');$('goSecret').onclick=()=>go('secret-entrance');$('goFloor').onclick=()=>go('floor-1');$('floor1').onclick=()=>go('floor-1');$('floor2').onclick=()=>go('floor-2');$('backBtn').onclick=back;$('dClose').onclick=closeDialog;$('shade').addEventListener('click',e=>{if(e.target===$('shade'))closeDialog()});$('soundBtn').onclick=()=>{s.audio=!s.audio;save();$('soundBtn').textContent=s.audio?'🔊 音效开启':'🔇 开启音效';if(s.audio)fx.unlock();music()};$('bagBtn').onclick=()=>{dialog('🎒 我的探险收藏',`<h3>🌟 探险奖励</h3><p>游戏目标：集齐22枚知识印章，解锁荣誉毕业典礼。${s.graduated?'🎓 已完成全校主线！':''}</p><p>累计获得 ⭐${s.star} 星星，🪙${s.coin} 金币。</p><h3>🏅 班级印章（${s.stamps.length}/22）</h3><p class="sm">${s.stamps.length?s.stamps.map(x=>x+'班').join('、'):'还没有印章，去教室向老师挑战！'}</p><h3>🪨 后排石怪救援记录</h3><p class="sm">${[4,9,15,22].map(c=>c+'班：'+(s.flags.includes('stone-cleared-'+c)?'✅ 已净化':s.flags.includes('stone-lost-'+c)?'⚠️ 同学待救援':'🔎 尚未调查')).join(' · ')}</p><h3>👁️ 22班禁区档案</h3><p class="sm">${s.flags.includes('secret-clear')?'🏆 禁区最终Boss已净化！':'已完成'+secretStepCount()+'/4重试炼。入口位于二年级22班的教室后墙。'}</p><h3>✨ 隐藏发现（${s.eggs.length}）</h3><p class="sm">${s.eggs.length?s.eggs.map(x=>'⭐ '+escapeText(x)).join('、'):'细心调查每个教室和交通工具。'}</p><button class="btn full" id="collectionSnacks">🍡 打开零食袋</button>`);$('collectionSnacks').onclick=neighborhood.showBag;};$('elementBtn').onclick=elementMuseum;$('learningBtn').onclick=learningPanel;$('parentBtn').onclick=parentPanel;$('helpBtn').onclick=()=>dialog('📜 3D 校园探险玩法',`<p><b>操作：</b>按住鼠标左键或手指拖动可旋转3D视角，滚轮缩放；用方向键、WASD或触屏方向键控制人物在校园或教室里行走。按 E 或点「互动」与附近的人物、物品交流，也可以直接点击场景标签。</p><p><b>放学街区：</b>从校门出去，穿过学校街，再到小吃摊街和我的家街。骑车或开车时 W 加速、S 倒车、A/D 转向，空格刹车；停稳按 E 下车。轻轨停站后上车，按 W 或点击发车。小吃可用游戏金币购买。</p><p><b>学习关卡：</b>首次进入游戏进行12道二年级上学期适龄题（语文6题、数学6题）；此后每60分钟进行一次。未完成不能离开魔法教室。每班还有8道适龄题（语文3题、数学3题、科学兴趣2题）。</p><p><b>同学：</b>每个班有4位有名字和不同形象的同学，还有本班老师；四位同学分别有语文、数学、科学兴趣和观察小挑战，可以收集88张友谊贴纸。老师可开启班级挑战并发放专属印章。</p><p><b>角石魔影：</b>第4、9、15、22班的教室后排藏着独角或双角石怪，会自动现身并靠近同学。触碰后人物化为光点并暂时离场（无血腥画面）；可躲避危险并完成4道独角或6道双角救援题，让同学重新出现。玩家被碰到会返回安全位置，可按住 Shift 或屏幕的冲刺按钮迅速接近结界。</p><p><b>22班禁区：</b>在二年级22班后墙找到发光暗门，依次经历黑影线索、雾影怪物、机械守卫、禁区Boss。通过观察与答题化解危机，不进行攻击；完成后奖励传说徽章。</p><p><b>声音：</b>点击右上角🔇开启音效后播放提示声和轻柔的原创合成背景旋律，随时可关闭。</p><p><b>存档：</b>当前浏览器自动保存。文件不依赖联网，但不同浏览器或设备的存档不自动同步。</p>`)}
 function start(){
   welcomeStart();
   let ok=false;

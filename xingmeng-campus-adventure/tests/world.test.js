@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 require('../src/learning-engine.js');
 require('../src/world-rules.js');
+require('../src/districts.js');
 require('../src/save-state.js');
 
 const W = globalThis.CampusWorld;
@@ -60,7 +61,7 @@ const old={version:6,scene:'class-22',round:4,locked:false,coin:13,stamps:[4,4,9
   secretBossProgress:6,learning:{...profile,activeClass:classPlan}};
 const storage={getItem:key=>key===S.KEY?'{broken':key.endsWith('-v6')?JSON.stringify(old):null};
 const save=S.read(storage,scenes);
-assert.equal(save.version,7);
+assert.equal(save.version,8);
 assert.equal(save.coin,13);
 assert.equal(save.scene,'class-22');
 assert.deepEqual(save.stamps,[4,9]);
@@ -84,3 +85,40 @@ assert.throws(()=>S.importFile({format:'xingmeng-save-v1',schema:2,state:old},sc
 profile.mode='challenge';
 for(let i=1;i<30;i++)assert(L.makeQuiz('hourly',i,profile).some(q=>q.diff===2));
 console.log('PASS · vehicle controls, both train directions, gate collision, snacks, stone tuning, and save migration');
+
+const D=globalThis.CampusDistricts;
+assert.deepEqual(D.streets.map(s=>s.id),['school-street','street','home-street']);
+const route=[['school-street',{x:33,z:0},'street'],['street',{x:41,z:0},'home-street'],
+  ['home-street',{x:-33,z:0},'street'],['street',{x:-41,z:0},'school-street'],
+  ['school-street',{x:-15,z:-12},'campus']];
+for(const [from,position,to] of route){
+  assert.equal(D.walkingExit(from,position),to);
+  assert.equal(D.walkingExit(to,D.spawn(to,from)),null,'district spawns clear of the next boundary');
+}
+for(const cave of D.caves){
+  const row=cave.rows.findIndex(r=>r.includes('S')),col=cave.rows[row].indexOf('S');
+  const queue=[[row,col]],seen=new Set([`${row},${col}`]);
+  for(let i=0;i<queue.length;i++){
+    const [y,x]=queue[i];
+    for(const [dy,dx] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const a=y+dy,b=x+dx,key=`${a},${b}`,tile=cave.rows[a]?.[b];
+      if(tile&&tile!=='#'&&!seen.has(key)){queue.push([a,b]);seen.add(key);}
+    }
+  }
+  for(const token of ['T','<','>']){
+    const row=cave.rows.findIndex(r=>r.includes(token));
+    if(row>=0)assert(seen.has(`${row},${cave.rows[row].indexOf(token)}`),cave.id+' reachable '+token);
+  }
+  const start=D.spawn(cave.id);
+  assert(D.cavePassable(cave,start.x,start.z));
+  const fixed=S.normalize({...old,scene:cave.id,px:100,pz:100},D.isScene);
+  assert.deepEqual({x:fixed.px,z:fixed.pz},start);
+}
+assert(Math.abs(W.stoneTuning(1,{calm:false}).speed-7.2)<1e-9);
+assert.equal(W.stoneTuning(2,{calm:false}).speed,15.5);
+assert.equal(W.stoneTuning(2,{calm:false,mode:'challenge'}).speed,19.375);
+assert(W.touchesPath({x:-2,z:0},{x:2,z:0},{x:0,z:0},.5),'fast stone crosses the full hit area');
+assert(!W.touchesPath({x:-2,z:0},{x:2,z:0},{x:0,z:1},.5),'parallel pass is not a hit');
+assert(D.isScene('home-5')&&D.isScene('friend-3-2'));
+assert(!D.isScene('home-6')&&!D.isScene('friend-4-1'));
+console.log('PASS · three street links, cave reachability, safe cave spawns, exact stone speeds and swept collision');

@@ -93,13 +93,19 @@
 
   function stoneTuning(horns, profile) {
     const single = horns === 1;
-    const base = single ? .72 : 1.55;
+    const base = 10 * (single ? .72 : 1.55);
     const speed = base * (profile.calm ? .72 : profile.mode === 'challenge' ? 1.25 : 1);
     return { speed, wake: single ? 3.5 : 2.8, rise: single ? 2.7 : 1.85 };
   }
 
+  function touchesPath(start, end, target, radius) {
+    const dx=end.x-start.x,dz=end.z-start.z,length=dx*dx+dz*dz;
+    const t=length ? clamp(((target.x-start.x)*dx+(target.z-start.z)*dz)/length,0,1) : 0;
+    return Math.hypot(target.x-start.x-t*dx,target.z-start.z-t*dz)<=radius;
+  }
+
   root.CampusWorld = {
     TRAINS, TRACK_Z, GATE_Z, STREET_SPAWN, PATH_LIMITS, VEHICLES, SHOPS, ITEMS,
-    moveOnFoot, stepVehicle, stepTrain, cleanSnacks, buySnack, stoneTuning
+    moveOnFoot, stepVehicle, stepTrain, cleanSnacks, buySnack, stoneTuning, touchesPath
   };
 })(globalThis);

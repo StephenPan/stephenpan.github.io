@@ -185,7 +185,8 @@
         marker(kind, label, id, x, y, z, callback, anchor);
         add(label, callback);
       };
-      bind('door', '🏫 穿过校门 · 返回校园', 'enter-campus', 0, 5.05, W.GATE_Z, () => api.go('campus'));
+      bind('door', '🏫 返回学校街', 'school-street', -42, 2.1, 0, () => api.go('school-street'));
+      bind('door', '🏡 沿街向东 · 我的家街', 'home-street', 42, 2.1, 0, () => api.go('home-street'));
       for (const [kind, spec] of Object.entries(W.VEHICLES)) {
         const label = kind === 'bike' ? '🚲 骑自行车' : '🚙 驾驶校园小车';
         bind('item', label, 'ride-' + kind, spec.start.x, 2.3, spec.start.z, () => mount(kind),
@@ -200,8 +201,8 @@
       }
       add('🎒 我的零食袋', showBag);
       return {
-        title: '🌆 校门外 · 放学街区',
-        desc: '沿树荫路出入校门。可骑自行车、驾驶小车、乘轻轨来回两站，也能在三个摊位用游戏金币买零食。',
+        title: '🍡 小吃摊街 · 放学街区',
+        desc: '街西通学校街，街东通我的家街。可骑车、开车、乘轻轨，或在三个摊位用游戏金币买零食。',
         camera: { theta: .28, phi: .98, dist: 81, target: [0, 1.6, 4] }
       };
     }

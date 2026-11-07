@@ -1,6 +1,6 @@
-/* 星梦校园学习引擎 v0.7 | MIT | 目前正式支持：小学二年级上学期 */
+/* 星梦校园学习引擎 v0.8 | MIT | 目前正式支持：小学二年级上学期 */
 (function(root){'use strict';
-const VERSION='0.7.0';
+const VERSION='0.8.0';
 const LIMIT=180;
 const SUBJECTS={cn:'语文',ma:'数学',sci:'科学兴趣'};
 const LEVEL_TEXT=['','巩固基础','标准练习','轻度拓展'];
