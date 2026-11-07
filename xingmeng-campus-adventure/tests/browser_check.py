@@ -13,7 +13,7 @@ with sync_playwright() as pw:
     errors=[]
     page.on('pageerror',lambda exc:errors.append(str(exc)))
     page.set_content((root/'index.html').read_text(encoding='utf-8'),wait_until='load')
-    assert page.evaluate('CampusLearning.VERSION') == '0.6.0'
+    assert page.evaluate('CampusLearning.VERSION') == '0.7.0'
     assert page.locator('#enterGame').is_visible()
     page.locator('#enterGame').click()
     assert page.locator('#quizChoices button').count()==4
