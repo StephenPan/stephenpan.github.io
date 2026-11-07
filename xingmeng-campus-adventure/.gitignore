@@ -1,0 +1,13 @@
+.DS_Store
+Thumbs.db
+node_modules/
+__pycache__/
+*.pyc
+_site/
+*.zip
+*.json.bak
+*.save.json
+*存档*.json
+*学习记录*.json
+tests/temp-game.js
+tests/campus-updated.png
