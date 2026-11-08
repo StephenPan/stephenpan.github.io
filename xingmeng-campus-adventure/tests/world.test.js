@@ -4,6 +4,7 @@ require('../src/learning-engine.js');
 require('../src/world-rules.js');
 require('../src/districts.js');
 require('../src/bell-room.js');
+require('../src/play-modes.js');
 require('../src/save-state.js');
 
 const W = globalThis.CampusWorld;
@@ -62,7 +63,7 @@ const old={version:6,scene:'class-22',round:4,locked:false,coin:13,stamps:[4,4,9
   secretBossProgress:6,learning:{...profile,activeClass:classPlan}};
 const storage={getItem:key=>key===S.KEY?'{broken':key.endsWith('-v6')?JSON.stringify(old):null};
 const save=S.read(storage,scenes);
-assert.equal(save.version,8);
+assert.equal(save.version,9);
 assert.equal(save.coin,13);
 assert.equal(save.scene,'class-22');
 assert.deepEqual(save.stamps,[4,9]);
@@ -123,3 +124,28 @@ assert(!W.touchesPath({x:-2,z:0},{x:2,z:0},{x:0,z:1},.5),'parallel pass is not a
 assert(D.isScene('home-5')&&D.isScene('friend-3-2'));
 assert(!D.isScene('home-6')&&!D.isScene('friend-4-1'));
 console.log('PASS · three street links, cave reachability, safe cave spawns, exact stone speeds and swept collision');
+
+const M=globalThis.CampusPlayModes;
+assert.equal(M.starYield(1000).whole,800000);
+assert.equal(M.starYield(2500).whole,2000000);
+assert.equal(M.starYield(.001,.4).whole,1);
+assert.equal(M.addStars(M.MAX_STAR-50,800000),M.MAX_STAR);
+const migrated=S.normalize({version:8,star:170000000,scene:'campus'},scenes);
+assert.equal(migrated.star,170000000);
+assert.equal(migrated.play.mode,'horror');
+assert.equal(migrated.play.generator,false);
+const creative=M.normalize({mode:'creative',blocks:{'0,0':[3,4,-1,2],'9,0':[0]}});
+assert.deepEqual(creative.blocks['0,0'],[3,2]);
+assert.equal(M.modifyBlock(creative,0,0,1,false),true);
+assert.equal(M.blocked(creative,.2,.2),true);
+assert.equal(M.modifyBlock(creative,0,0,1,true),true);
+assert.equal(M.modifyBlock(creative,7,0,1,false),false);
+assert.equal(M.spendHeart(creative),false);
+assert.equal(creative.hearts,3);
+const survival=M.normalize({mode:'survival',hearts:1,energy:1});
+assert(M.drainEnergy(40,3,true,true)<M.drainEnergy(40,3,true,false));
+assert.equal(M.drainEnergy(1,8,true,true),0);
+assert.equal(M.spendHeart(survival),true);
+assert.equal(survival.energy,100);
+assert.equal(survival.hearts,3);
+console.log('PASS · 800,000 stars/sec, high balances, workshop edits and survival rules');

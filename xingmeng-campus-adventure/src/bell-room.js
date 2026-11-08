@@ -143,8 +143,9 @@
       const dim=elapsed%4.1>=2.35;
       const dx=p.px-shadow.x,dz=p.pz-shadow.z,distance=Math.hypot(dx,dz);
       if(distance>.01)shadow.yaw=Math.atan2(dx,dz);
-      if(dim&&p.pz<SAFE_LINE){
-        const advance=Math.min(distance,dt*5.4);
+      if(dim&&p.pz<SAFE_LINE&&api.mode()!=='creative'){
+        const speed=api.mode()==='survival'?7.6:5.4;
+        const advance=Math.min(distance,dt*speed);
         if(distance>.01){
           shadow.x+=dx/distance*advance;
           shadow.z=Math.min(SAFE_LINE-.6,shadow.z+dz/distance*advance);
@@ -154,6 +155,7 @@
           resetPlayer(SPAWN);
           resetEncounter();
           updateLook(false,'你退回了门边。那三声敲门声又停了。');
+          api.hurt('守钟人追上了你。');
           return;
         }
       }
