@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 require('../src/learning-engine.js');
 const E=globalThis.CampusLearning;
-assert.equal(E.VERSION,'0.8.0');
+assert.equal(E.VERSION,'0.8.1');
 assert.equal(E.bank.length,84);
 const ids=new Set();
 for(const item of E.bank){

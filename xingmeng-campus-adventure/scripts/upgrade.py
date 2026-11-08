@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src"
 MARKER = "<!-- INLINE_GAME_SCRIPTS -->"
-SCRIPTS = ("learning-engine.js", "world-rules.js", "districts.js", "save-state.js", "neighborhood.js", "game.js")
+SCRIPTS = ("learning-engine.js", "world-rules.js", "districts.js", "bell-room.js", "save-state.js", "neighborhood.js", "game.js")
 
 template = (SOURCE / "game-template.html").read_text(encoding="utf-8")
 if template.count(MARKER) != 1:

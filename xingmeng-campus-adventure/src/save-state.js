@@ -65,11 +65,12 @@
       if (plan) classPlans[c] = plan;
     }
     learning.classPlans = classPlans;
-    const districtSpawn = root.CampusDistricts.spawn(scene);
+    const districtSpawn = scene === root.CampusBellRoom.ID ? root.CampusBellRoom.SPAWN : root.CampusDistricts.spawn(scene);
     const spawn = districtSpawn || (scene === 'street' ? root.CampusWorld.STREET_SPAWN : { x:0,z:8 });
     const cave = root.CampusDistricts.caves.find(c => c.id === scene);
     const validCavePosition = !cave || root.CampusDistricts.cavePassable(cave,raw.px,raw.pz);
-    const limits = scene === 'street' ? root.CampusWorld.PATH_LIMITS : root.CampusDistricts.bounds(scene) ||
+    const limits = scene === root.CampusBellRoom.ID ? root.CampusBellRoom.BOUNDS :
+      scene === 'street' ? root.CampusWorld.PATH_LIMITS : root.CampusDistricts.bounds(scene) ||
       {minX:scene === 'campus' ? -44 : scene.startsWith('floor-') ? -42 : -10.5,
        maxX:scene === 'campus' ? 44 : scene.startsWith('floor-') ? 42 : 10.5,
        minZ:scene === 'campus' ? -32 : -7,maxZ:scene === 'campus' ? 34 : 8};

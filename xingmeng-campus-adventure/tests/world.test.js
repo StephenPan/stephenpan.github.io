@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 require('../src/learning-engine.js');
 require('../src/world-rules.js');
 require('../src/districts.js');
+require('../src/bell-room.js');
 require('../src/save-state.js');
 
 const W = globalThis.CampusWorld;
