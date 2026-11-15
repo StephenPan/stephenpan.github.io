@@ -3,8 +3,8 @@
   'use strict';
 
   const HOUR = 3600000;
-  const KEY = 'star-dream-3d-v8';
-  const KEYS = [KEY, 'star-dream-3d-v7', 'star-dream-3d-v6', 'star-dream-3d-v5', 'star-dream-3d-v4'];
+  const KEY = 'star-dream-3d-v9';
+  const KEYS = [KEY, 'star-dream-3d-v8', 'star-dream-3d-v7', 'star-dream-3d-v6', 'star-dream-3d-v5', 'star-dream-3d-v4'];
   const STONE_CLASSES = [4, 9, 15, 22];
   const text = (value, limit = 500) => typeof value === 'string' && value.length <= limit;
   const count = (value, max, fallback = 0) =>
@@ -65,11 +65,15 @@
       if (plan) classPlans[c] = plan;
     }
     learning.classPlans = classPlans;
-    const districtSpawn = root.CampusDistricts.spawn(scene);
+    const play = root.CampusPlayModes.normalize(raw.play);
+    const workshop = scene === root.CampusPlayModes.WORKSHOP;
+    const districtSpawn = workshop ? root.CampusPlayModes.WORKSHOP_SPAWN :
+      scene === root.CampusBellRoom.ID ? root.CampusBellRoom.SPAWN : root.CampusDistricts.spawn(scene);
     const spawn = districtSpawn || (scene === 'street' ? root.CampusWorld.STREET_SPAWN : { x:0,z:8 });
     const cave = root.CampusDistricts.caves.find(c => c.id === scene);
     const validCavePosition = !cave || root.CampusDistricts.cavePassable(cave,raw.px,raw.pz);
-    const limits = scene === 'street' ? root.CampusWorld.PATH_LIMITS : root.CampusDistricts.bounds(scene) ||
+    const limits = workshop ? root.CampusPlayModes.BOUNDS : scene === root.CampusBellRoom.ID ? root.CampusBellRoom.BOUNDS :
+      scene === 'street' ? root.CampusWorld.PATH_LIMITS : root.CampusDistricts.bounds(scene) ||
       {minX:scene === 'campus' ? -44 : scene.startsWith('floor-') ? -42 : -10.5,
        maxX:scene === 'campus' ? 44 : scene.startsWith('floor-') ? 42 : 10.5,
        minZ:scene === 'campus' ? -32 : -7,maxZ:scene === 'campus' ? 34 : 8};
@@ -78,12 +82,12 @@
     const floor = scene.startsWith('class-') ? (Number(scene.slice(6)) > 11 ? 2 : 1) :
       scene.startsWith('floor-') ? Number(scene.slice(6)) : raw.floor === 2 ? 2 : 1;
     return {
-      version: 8,
+      version: 9,
       avatar: raw.avatar === 1 ? 1 : 0,
       scene, floor, round, locked,
       progress: hourly ? count(raw.progress, 11) : 0,
       due: Number.isFinite(raw.due) ? Math.min(now + HOUR, raw.due) : now + HOUR,
-      star: count(raw.star, 100000000),
+      star: count(raw.star, root.CampusPlayModes.MAX_STAR),
       coin: count(raw.coin, 100000000),
       stamps: Array.isArray(raw.stamps) ? [...new Set(raw.stamps.filter(v => Number.isInteger(v) && v >= 1 && v <= 22))] : [],
       eggs: strings(raw.eggs), visits: strings(raw.visits), talk: strings(raw.talk), flags: strings(raw.flags),
@@ -91,7 +95,7 @@
       audio: raw.audio === true,
       px: coordinate(validCavePosition ? raw.px : NaN, spawn.x, limits.minX, limits.maxX),
       pz: coordinate(validCavePosition ? raw.pz : NaN, spawn.z, limits.minZ, limits.maxZ),
-      learning, snacks: root.CampusWorld.cleanSnacks(raw.snacks),
+      learning, play, snacks: root.CampusWorld.cleanSnacks(raw.snacks),
       stoneQuizProgress: flagsOf(raw.stoneQuizProgress, STONE_CLASSES),
       secretMonsterProgress: count(raw.secretMonsterProgress, 3),
       secretBossProgress: count(raw.secretBossProgress, 8)
@@ -102,7 +106,7 @@
     for (const key of KEYS) {
       try {
         const value = JSON.parse(storage.getItem(key) || 'null');
-        if (value && Number.isInteger(value.version) && value.version >= 4 && value.version <= 8) {
+        if (value && Number.isInteger(value.version) && value.version >= 4 && value.version <= 9) {
           return normalize(value, isScene);
         }
       } catch {

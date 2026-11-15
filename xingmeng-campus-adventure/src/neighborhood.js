@@ -404,6 +404,7 @@
           const id = button.dataset.eat;
           if (s().snacks[id] <= 0) return;
           s().snacks[id]--;
+          api.feed();
           save();
           fx.success();
           toast('尝了一口 ' + W.ITEMS[id].name + '！');
