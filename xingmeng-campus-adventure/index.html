@@ -120,6 +120,9 @@ body.stone-danger .scenehead{background:linear-gradient(100deg,#f9f0ef,#e4e5f4)}
 .build-controls{position:absolute;z-index:11;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:7px;background:#243848ea;color:white;border-radius:9px;font-size:12px;white-space:nowrap}
 .build-controls button,.build-controls select{min-height:36px;font:inherit;border:1px solid #e1c791;border-radius:6px;background:#f7e6c5;color:#243848;padding:4px 6px}
 @media(max-width:520px){.build-controls{bottom:68px}.mode-options button{padding:5px}.mode-options small{font-size:10px}}
+
+/* A light soft-focus filter applies only to the rendered world. */
+#glCanvas{filter:blur(.65px)}
 </style></head><body>
 <div class="app"><div id="welcome" class="welcome-layer" role="dialog" aria-label="星梦校园游戏入口">
 <div class="welcome-art"></div><div class="welcome-shade"></div>
