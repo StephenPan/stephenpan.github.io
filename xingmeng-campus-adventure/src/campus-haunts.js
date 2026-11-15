@@ -1,4 +1,4 @@
-/* Optional encounters in the existing campus scenes, enabled in horror mode. */
+/* Optional encounters in the existing campus scenes, enabled in normal mode. */
 (function (root) {
   'use strict';
 
@@ -54,7 +54,7 @@
     let site=null,model=null,age=-1;
     const current=()=>{
       const s=getState();
-      return s.play.mode==='horror'?SITES[s.scene]:null;
+      return s.play.mode==='normal'?SITES[s.scene]:null;
     };
     function begin() {
       if(!site||(age>=0&&age<4.6))return;

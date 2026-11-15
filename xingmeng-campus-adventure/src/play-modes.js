@@ -3,9 +3,9 @@
   'use strict';
 
   const MODES = {
-    horror:{label:'恐怖',icon:'👁️',note:'四处怪谈会出现。被怪物追上会退回安全点。'},
     creative:{label:'创造',icon:'🧱',note:'玩家无敌。到创造工坊放置、堆叠和拆除方块。'},
-    survival:{label:'生存',icon:'❤️',note:'只有三颗心。体力持续下降，石怪和守钟人追得更快。零食可恢复体力。'}
+    survival:{label:'生存',icon:'❤️',note:'只有三颗心。体力持续下降，石怪和守钟人追得更快。零食可恢复体力。'},
+    normal:{label:'普通',icon:'🌳',note:'原来的校园探索、学习闯关、交通和怪谈玩法。'}
   };
   const WORKSHOP='creative-workshop';
   const BOUNDS={minX:-10,maxX:10,minZ:-8,maxZ:8};
@@ -30,7 +30,7 @@
       if(clean.length){blocks[key]=clean;remaining-=clean.length;}
     }
     return {
-      mode:validMode(raw?.mode)?raw.mode:'horror',
+      mode:validMode(raw?.mode)?raw.mode:'normal',
       generator:raw?.generator===true,
       energy:Number.isFinite(raw?.energy)?clamp(raw.energy,0,100):100,
       hearts:Number.isSafeInteger(raw?.hearts)?clamp(raw.hearts,1,3):3,
@@ -135,6 +135,7 @@
     function refreshHUD() {
       const info=MODES[mode()];
       $('modeBtn').textContent=info.icon+' '+info.label+'模式';
+      $('openWorkshop').classList.toggle('hidden',mode()!=='creative');
       $('generatorStatus').classList.toggle('hidden',!play().generator);
       $('survivalStatus').classList.toggle('hidden',mode()!=='survival');
       if(mode()!=='survival')return;
@@ -168,6 +169,7 @@
           closeDialog();choose(button.dataset.mode);
         });
       };
+      $('openWorkshop').onclick=()=>go(WORKSHOP);
       $('workColor').onchange=()=>{color=Number($('workColor').value);};
       $('placeBlock').onclick=()=>edit(false);
       $('removeBlock').onclick=()=>edit(true);

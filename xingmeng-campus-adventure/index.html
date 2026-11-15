@@ -126,7 +126,7 @@ body.stone-danger .scenehead{background:linear-gradient(100deg,#f9f0ef,#e4e5f4)}
 </style></head><body>
 <div class="app"><div id="welcome" class="welcome-layer" role="dialog" aria-label="星梦校园游戏入口">
 <div class="welcome-art"></div><div class="welcome-shade"></div>
-<div class="welcome-content"><div class="overline">XINGMENG · CAMPUS QUEST · V0.9</div><h1>星梦校园<br><em>三模式冒险</em></h1><p>选恐怖、创造或生存模式。你可以遇见校园怪谈、到工坊搭建，或者带上补给挑战高难度生存。</p><div class="welcome-facts"><span>🏫 22个班级</span><span>👥 88位同学</span><span>📚 每小时12题</span><span>🎵 原创音效</span><span>👁️ 四重禁区关卡</span><span>📚 适配小学二年级上</span></div><div class="choose-character"><span>选择探险角色</span><button class="char-pick selected" data-avatar="0">🧑🏻 小探险家</button><button class="char-pick" data-avatar="1">👧🏻 星梦</button></div><div id="welcomeModes" class="mode-options" aria-label="初始游戏模式"></div><button id="enterGame" class="enter-game">▶ 进入星梦校园</button><div class="welcome-note">本版本默认适配二年级上学期：先巩固基础，再根据正确率轻微加难；科学与化学知识作为兴趣拓展。<br>画面为风格概念主视觉；进入后为可实时旋转、行走及互动的3D游戏场景。<br>所有进度自动保存在本浏览器。</div></div></div><header class="top"><div class="brand"><div class="crest">🏛️</div><div><strong>星梦校园 · 成长探险</strong><small>立体校园 · 22班学院 · 角石魔影 · 四重秘密挑战</small></div></div><div class="statrow"><span class="pill" id="hStar">⭐ 0</span><span class="pill" id="hCoin">🪙 0</span><span class="pill" id="hStamp">🏅 0/22</span><span class="pill" id="hLevel">📚 二上 · 基础</span><span class="pill" id="hTimer">🔒 学习中</span></div><div class="toolbar"><button class="tool" id="modeBtn">👁️ 恐怖模式</button><button class="tool" id="soundBtn">🔇 开启音效</button><button class="tool" id="bagBtn">🎒 收藏</button><button class="tool" id="elementBtn">🧪 元素图鉴</button><button class="tool" id="learningBtn">📊 成长档案</button><button class="tool" id="parentBtn">⚙️ 学习设置</button><button class="tool" id="helpBtn">❓ 帮助</button></div></header>
+<div class="welcome-content"><div class="overline">XINGMENG · CAMPUS QUEST · V0.9.1</div><h1>星梦校园<br><em>三模式冒险</em></h1><p>选择创造、生存或普通模式。创造可以无敌搭建方块，生存有更强的追逐和体力挑战，普通是原来的校园探险。</p><div class="welcome-facts"><span>🏫 22个班级</span><span>👥 88位同学</span><span>📚 每小时12题</span><span>🎵 原创音效</span><span>👁️ 四重禁区关卡</span><span>📚 适配小学二年级上</span></div><div class="choose-character"><span>选择探险角色</span><button class="char-pick selected" data-avatar="0">🧑🏻 小探险家</button><button class="char-pick" data-avatar="1">👧🏻 星梦</button></div><div id="welcomeModes" class="mode-options" aria-label="初始游戏模式"></div><button id="enterGame" class="enter-game">▶ 进入星梦校园</button><div class="welcome-note">本版本默认适配二年级上学期：先巩固基础，再根据正确率轻微加难；科学与化学知识作为兴趣拓展。<br>画面为风格概念主视觉；进入后为可实时旋转、行走及互动的3D游戏场景。<br>所有进度自动保存在本浏览器。</div></div></div><header class="top"><div class="brand"><div class="crest">🏛️</div><div><strong>星梦校园 · 成长探险</strong><small>立体校园 · 22班学院 · 角石魔影 · 四重秘密挑战</small></div></div><div class="statrow"><span class="pill" id="hStar">⭐ 0</span><span class="pill" id="hCoin">🪙 0</span><span class="pill" id="hStamp">🏅 0/22</span><span class="pill" id="hLevel">📚 二上 · 基础</span><span class="pill" id="hTimer">🔒 学习中</span></div><div class="toolbar"><button class="tool" id="modeBtn">🌳 普通模式</button><button class="tool hidden" id="openWorkshop">🧱 放置方块</button><button class="tool" id="soundBtn">🔇 开启音效</button><button class="tool" id="bagBtn">🎒 收藏</button><button class="tool" id="elementBtn">🧪 元素图鉴</button><button class="tool" id="learningBtn">📊 成长档案</button><button class="tool" id="parentBtn">⚙️ 学习设置</button><button class="tool" id="helpBtn">❓ 帮助</button></div></header>
 <div class="layout"><aside class="sidebar"><div class="section-title">📋 我的冒险任务</div><div class="panel sm"><b>🧒 当前学段：二年级上学期</b><br>语文、数学分开记录掌握情况。高正确率才会轻微提升难度，不自动跳到高年级。</div><div class="panel"><div id="taskList"></div><div class="progress"><i id="taskProg"></i></div><div class="tiny">完成主线、探索场景、结识88位同学，集齐22枚印章解锁毕业典礼，再解开22班后方的禁区传说。</div></div><div class="panel"><div class="section-title">🧭 快捷导航</div><button class="btn full" id="goMap">🌳 校园主地图</button><button class="btn full" id="worldMap">🗺️ 三街地图</button><button class="btn full" id="goSchoolStreet">🏫 学校街</button><button class="btn full" id="goStreet">🍡 小吃摊街</button><button class="btn full" id="goHomeStreet">🏡 我的家街</button><button class="btn full" id="goHall">🏛️ 进入教学楼</button><button class="btn full" id="go22">🧪 进入二年级22班</button><button class="btn full hidden" id="goSecret">👁️ 继续22班禁区冒险</button><button class="btn full" id="goFloor">🚪 22个班级目录</button></div><div class="panel sm"><b>🎮 操作</b><br>鼠标拖动旋转视角，滚轮缩放。WASD / 方向键移动，按 E 与近处互动。点击发光标签也能进入场景和互动。手机支持屏幕方向键。<br><br><b>🔐 闯关机制</b><br>进入游戏先完成 12 题；以后每隔 60 分钟再挑战。每个班还有 8 题教师挑战。</div></aside>
 <main class="scene"><div class="scenehead"><div><div class="bread" id="bread">星梦世界 / 校园广场</div><div class="heading" id="sceneTitle">🌳 星梦校园 · 3D 探险广场</div></div><span class="badge" id="sceneTag">拖动鼠标可旋转 3D 视角</span></div><div class="viewport" id="view"><div class="stone-meter hidden" id="stoneMeter"><strong id="stoneMeterTitle">🪨 教室后方出现异动</strong><div id="stoneMeterText">石怪即将苏醒</div><div style="height:5px;background:#ffffff26;border-radius:15px"><i id="stoneMeterBar" style="width:1%"></i></div></div><div class="stone-particles" id="stoneParticles"></div>
 <div id="generatorStatus" class="play-indicator generator-indicator hidden">🌟 星星生成器 · +800,000/秒</div>
@@ -145,7 +145,7 @@ body.stone-danger .scenehead{background:linear-gradient(100deg,#f9f0ef,#e4e5f4)}
 <script>
 /* 星梦校园学习引擎 v0.8 | MIT | 目前正式支持：小学二年级上学期 */
 (function(root){'use strict';
-const VERSION='0.9.0';
+const VERSION='0.9.1';
 const LIMIT=180;
 const SUBJECTS={cn:'语文',ma:'数学',sci:'科学兴趣'};
 const LEVEL_TEXT=['','巩固基础','标准练习','轻度拓展'];
@@ -952,9 +952,9 @@ root.CampusLearning={VERSION,SUBJECTS,LEVEL_TEXT,bank,emptyProfile,ensureProfile
   'use strict';
 
   const MODES = {
-    horror:{label:'恐怖',icon:'👁️',note:'四处怪谈会出现。被怪物追上会退回安全点。'},
     creative:{label:'创造',icon:'🧱',note:'玩家无敌。到创造工坊放置、堆叠和拆除方块。'},
-    survival:{label:'生存',icon:'❤️',note:'只有三颗心。体力持续下降，石怪和守钟人追得更快。零食可恢复体力。'}
+    survival:{label:'生存',icon:'❤️',note:'只有三颗心。体力持续下降，石怪和守钟人追得更快。零食可恢复体力。'},
+    normal:{label:'普通',icon:'🌳',note:'原来的校园探索、学习闯关、交通和怪谈玩法。'}
   };
   const WORKSHOP='creative-workshop';
   const BOUNDS={minX:-10,maxX:10,minZ:-8,maxZ:8};
@@ -979,7 +979,7 @@ root.CampusLearning={VERSION,SUBJECTS,LEVEL_TEXT,bank,emptyProfile,ensureProfile
       if(clean.length){blocks[key]=clean;remaining-=clean.length;}
     }
     return {
-      mode:validMode(raw?.mode)?raw.mode:'horror',
+      mode:validMode(raw?.mode)?raw.mode:'normal',
       generator:raw?.generator===true,
       energy:Number.isFinite(raw?.energy)?clamp(raw.energy,0,100):100,
       hearts:Number.isSafeInteger(raw?.hearts)?clamp(raw.hearts,1,3):3,
@@ -1084,6 +1084,7 @@ root.CampusLearning={VERSION,SUBJECTS,LEVEL_TEXT,bank,emptyProfile,ensureProfile
     function refreshHUD() {
       const info=MODES[mode()];
       $('modeBtn').textContent=info.icon+' '+info.label+'模式';
+      $('openWorkshop').classList.toggle('hidden',mode()!=='creative');
       $('generatorStatus').classList.toggle('hidden',!play().generator);
       $('survivalStatus').classList.toggle('hidden',mode()!=='survival');
       if(mode()!=='survival')return;
@@ -1117,6 +1118,7 @@ root.CampusLearning={VERSION,SUBJECTS,LEVEL_TEXT,bank,emptyProfile,ensureProfile
           closeDialog();choose(button.dataset.mode);
         });
       };
+      $('openWorkshop').onclick=()=>go(WORKSHOP);
       $('workColor').onchange=()=>{color=Number($('workColor').value);};
       $('placeBlock').onclick=()=>edit(false);
       $('removeBlock').onclick=()=>edit(true);
@@ -1239,7 +1241,7 @@ root.CampusLearning={VERSION,SUBJECTS,LEVEL_TEXT,bank,emptyProfile,ensureProfile
 })(globalThis);
 </script>
 <script>
-/* Optional encounters in the existing campus scenes, enabled in horror mode. */
+/* Optional encounters in the existing campus scenes, enabled in normal mode. */
 (function (root) {
   'use strict';
 
@@ -1295,7 +1297,7 @@ root.CampusLearning={VERSION,SUBJECTS,LEVEL_TEXT,bank,emptyProfile,ensureProfile
     let site=null,model=null,age=-1;
     const current=()=>{
       const s=getState();
-      return s.play.mode==='horror'?SITES[s.scene]:null;
+      return s.play.mode==='normal'?SITES[s.scene]:null;
     };
     function begin() {
       if(!site||(age>=0&&age<4.6))return;
